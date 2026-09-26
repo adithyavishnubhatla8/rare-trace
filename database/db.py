@@ -1875,14 +1875,14 @@ class DatabaseManager:
 
         return analysis_id
 
-    def get_all_analyses(self, limit=50):
+    def get_all_analyses(self, limit=10, page=1, include_summary=False):
         """
-        Fetch all historical analysis runs.
+        Fetch historical analysis runs with pagination and selective projection.
         Prioritizes live records from Supabase PostgreSQL, falls back to local database.
         """
         # Try Supabase API first if configured
         if supabase_manager.is_configured():
-            remote_records = supabase_manager.get_all_analyses(limit=limit)
+            remote_records = supabase_manager.get_all_analyses(limit=limit, page=page, include_summary=include_summary)
             if remote_records:
                 for r in remote_records:
                     if isinstance(r.get("results_summary"), str):
@@ -1893,14 +1893,16 @@ class DatabaseManager:
                 return remote_records
 
         # Fallback to local SQL storage
-        query = "SELECT * FROM analyses ORDER BY created_at DESC LIMIT ?"
+        offset = max(0, (page - 1) * limit)
+        cols = "*" if include_summary else "id, analysis_id, dataset_name, dataset_filename, source, total_records, total_clusters, anomalies, anomaly_percentage, eps, min_samples, silhouette_score, status, created_at"
+        query = f"SELECT {cols} FROM analyses ORDER BY created_at DESC LIMIT ? OFFSET ?"
         analyses = []
         if self.use_sqlite_fallback:
             conn = self._get_raw_sqlite_connection()
             conn.row_factory = sqlite3.Row
             try:
                 cursor = conn.cursor()
-                cursor.execute(query, (limit,))
+                cursor.execute(query, (limit, offset))
                 for row in cursor.fetchall():
                     d = dict(row)
                     if isinstance(d.get("results_summary"), str):
@@ -1916,7 +1918,7 @@ class DatabaseManager:
         else:
             try:
                 with self.engine.connect() as conn:
-                    res = conn.execute(text("SELECT * FROM analyses ORDER BY created_at DESC LIMIT :l"), {"l": limit})
+                    res = conn.execute(text(f"SELECT {cols} FROM analyses ORDER BY created_at DESC LIMIT :l OFFSET :o"), {"l": limit, "o": offset})
                     for row in res.fetchall():
                         d = dict(row._mapping)
                         if isinstance(d.get("results_summary"), str):
@@ -1928,6 +1930,28 @@ class DatabaseManager:
             except Exception as e:
                 print(f"[WARNING] PostgreSQL analyses fetch error: {e}")
         return analyses
+
+    def get_analyses_count(self):
+        """Get total count of recorded analyses for pagination."""
+        if self.use_sqlite_fallback:
+            conn = self._get_raw_sqlite_connection()
+            try:
+                cursor = conn.cursor()
+                cursor.execute("SELECT COUNT(*) FROM analyses")
+                res = cursor.fetchone()
+                return int(res[0]) if res else 0
+            except Exception:
+                return 0
+            finally:
+                conn.close()
+        else:
+            try:
+                with self.engine.connect() as conn:
+                    res = conn.execute(text("SELECT COUNT(*) FROM analyses"))
+                    val = res.scalar()
+                    return int(val) if val is not None else 0
+            except Exception:
+                return 0
 
     def get_analysis_record(self, analysis_id):
         """Fetch a single analysis record by ID from Supabase or local storage."""

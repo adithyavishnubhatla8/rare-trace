@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS analyses (
 
 CREATE INDEX IF NOT EXISTS idx_analyses_created_at ON analyses(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_analyses_id ON analyses(analysis_id);
+CREATE INDEX IF NOT EXISTS idx_analyses_status ON analyses(status);
 
 CREATE TABLE IF NOT EXISTS datasets (
     dataset_id VARCHAR(64) PRIMARY KEY,

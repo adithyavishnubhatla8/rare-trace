@@ -4,7 +4,7 @@
    Theme: Light Scientific Healthcare (Navy #0B1F33, Teal #0F766E, Cyan #22D3EE)
    ============================================================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+/* Fonts pre-connected and loaded asynchronously in HTML templates for zero render blocking */
 
 :root {
   /* Brand Identity & Palette */

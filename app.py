@@ -6,7 +6,7 @@ import json
 import threading
 import pandas as pd
 import numpy as np
-from flask import Flask, render_template, request, jsonify, redirect, url_for, send_file, send_from_directory, flash, session
+from flask import Flask, render_template, request, jsonify, redirect, url_for, send_file, send_from_directory, flash, session, g
 from pathlib import Path
 import sys
 
@@ -20,7 +20,6 @@ from models.dbscan_model import DBSCANAnomalyDetector
 from models.rare_case_detector import RareCaseDetector
 from models.clinical_decision_support import ClinicalDecisionSupportEngine
 from models.clinical_recommendation_engine import ClinicalRecommendationEngine
-from analysis.report_generator import AnalysisReportGenerator
 
 app = Flask(
     __name__,
@@ -43,8 +42,12 @@ except Exception as e:
 def get_active_dataset(allow_fallback=True):
     """
     Retrieve active dataset record and all registered datasets.
+    Caches results on Flask `g` to eliminate duplicate queries within the same request lifecycle.
     If no datasets exist, automatically seeds the baseline clinical dataset.
     """
+    if hasattr(g, "active_dataset") and hasattr(g, "all_datasets"):
+        return g.active_dataset, g.all_datasets
+
     all_datasets = db_manager.get_all_datasets()
     
     if not all_datasets and allow_fallback:
@@ -62,6 +65,8 @@ def get_active_dataset(allow_fallback=True):
             print(f"[ERROR] Default dataset initialization failed: {e}")
 
     if not all_datasets:
+        g.active_dataset = None
+        g.all_datasets = []
         return None, []
 
     requested_id = request.args.get("dataset_id") or session.get("active_dataset_id")
@@ -76,6 +81,8 @@ def get_active_dataset(allow_fallback=True):
         active_dataset = all_datasets[0]
 
     session["active_dataset_id"] = active_dataset["dataset_id"]
+    g.active_dataset = active_dataset
+    g.all_datasets = all_datasets
     return active_dataset, all_datasets
 
 @app.context_processor
@@ -93,8 +100,8 @@ def inject_dataset_context():
 
 @app.route("/")
 def index():
-    """Landing Page -> Redirect to active dataset dashboard."""
-    return redirect(url_for("dashboard"))
+    """Landing Page -> Render active dataset dashboard directly without extra HTTP redirect."""
+    return dashboard()
 
 @app.route("/datasets")
 def datasets_page():
@@ -219,19 +226,16 @@ def upload_dataset():
         return redirect(url_for("datasets_page"))
 
 @app.route("/api/upload", methods=["POST"])
+@app.route("/api/process", methods=["POST"])
 def api_upload():
     """REST API endpoint for uploading and analyzing a CSV dataset with JSON response."""
-    if "file" not in request.files:
-        return jsonify({"error": "No file attached in upload request."}), 400
+    file = request.files.get("file") or request.files.get("csv")
+    df_uploaded = None
+    filename = "dataset.csv"
 
-    file = request.files["file"]
-    if not file or file.filename == "":
-        return jsonify({"error": "No CSV file selected."}), 400
-
-    if not file.filename.lower().endswith(".csv"):
-        return jsonify({"error": "Invalid file format. Please upload a .csv file."}), 400
-
-    try:
+    if file and file.filename != "":
+        if not file.filename.lower().endswith(".csv") and not file.filename.lower().endswith(".txt"):
+            return jsonify({"error": "Invalid file format. Please upload a .csv file."}), 400
         try:
             df_uploaded = pd.read_csv(file)
         except pd.errors.EmptyDataError:
@@ -240,6 +244,33 @@ def api_upload():
             return jsonify({"error": "The CSV file could not be parsed. Please check delimiters and formatting."}), 400
         except UnicodeDecodeError:
             return jsonify({"error": "Encoding error. Please upload a CSV encoded in standard UTF-8 format."}), 400
+        filename = file.filename
+    elif request.is_json:
+        req_json = request.get_json(silent=True) or {}
+        if "csv" in req_json and isinstance(req_json["csv"], str):
+            try:
+                df_uploaded = pd.read_csv(io.StringIO(req_json["csv"]))
+            except Exception as e:
+                return jsonify({"error": f"Failed to parse CSV string: {e}"}), 400
+            filename = req_json.get("filename", "api_payload.csv")
+        elif "data" in req_json and isinstance(req_json["data"], list):
+            try:
+                df_uploaded = pd.DataFrame(req_json["data"])
+            except Exception as e:
+                return jsonify({"error": f"Failed to parse JSON records: {e}"}), 400
+            filename = req_json.get("filename", "api_records.csv")
+        else:
+            return jsonify({"error": "No CSV file or data payload provided."}), 400
+    elif request.data and (b"," in request.data or b"\n" in request.data):
+        try:
+            df_uploaded = pd.read_csv(io.BytesIO(request.data))
+            filename = "raw_upload.csv"
+        except Exception as e:
+            return jsonify({"error": f"Could not parse raw CSV body: {e}"}), 400
+    else:
+        return jsonify({"error": "No file attached or data payload provided in upload request."}), 400
+
+    try:
 
         df_uploaded.columns = [str(c).strip() for c in df_uploaded.columns]
 
@@ -812,7 +843,8 @@ def reports_hub():
 
 @app.route("/export-pdf")
 def export_pdf_report():
-    """Download executive analysis report document as PDF for active dataset."""
+    """Download executive analysis report document as PDF for active dataset (lazy-loads ReportLab)."""
+    from analysis.report_generator import AnalysisReportGenerator
     active_ds, _ = get_active_dataset(allow_fallback=True)
     dataset_id = request.args.get("dataset_id") or (active_ds["dataset_id"] if active_ds else "ds_default")
     ds = db_manager.get_dataset(dataset_id)
@@ -830,6 +862,7 @@ def export_pdf_report():
 @app.route("/patients/<patient_id>/export-pdf")
 def export_patient_pdf(dataset_id=None, patient_id=None):
     """Download single-patient detailed audit and clinical recommendations report as PDF."""
+    from analysis.report_generator import AnalysisReportGenerator
     active_ds, _ = get_active_dataset(allow_fallback=True)
     if not dataset_id:
         dataset_id = active_ds["dataset_id"] if active_ds else "ds_default"
@@ -846,6 +879,7 @@ def export_patient_pdf(dataset_id=None, patient_id=None):
 @app.route("/export-clinical-suggestions-csv")
 def export_clinical_suggestions_csv():
     """Download Clinical Decision Support recommendations as CSV strictly for active dataset."""
+    from analysis.report_generator import AnalysisReportGenerator
     active_ds, _ = get_active_dataset(allow_fallback=True)
     dataset_id = request.args.get("dataset_id") or (active_ds["dataset_id"] if active_ds else "ds_default")
     ds = db_manager.get_dataset(dataset_id)
@@ -998,13 +1032,29 @@ def api_analysis_status(run_id):
 
 @app.route("/history")
 def analysis_history():
-    """Display historical analyses stored in Supabase PostgreSQL."""
-    analyses = db_manager.get_all_analyses(limit=100)
+    """Display historical analyses stored in Supabase PostgreSQL with pagination and column projection."""
+    page = request.args.get("page", 1, type=int)
+    if page < 1:
+        page = 1
+    per_page = request.args.get("per_page", 10, type=int)
+    if per_page < 1 or per_page > 100:
+        per_page = 10
+
+    total_count = db_manager.get_analyses_count()
+    analyses = db_manager.get_all_analyses(limit=per_page, page=page, include_summary=False)
+    total_pages = max(1, (total_count + per_page - 1) // per_page)
+    
     is_supabase = supabase_manager.is_configured()
     db_backend = "Supabase PostgreSQL" if is_supabase else ("PostgreSQL" if not db_manager.use_sqlite_fallback else "Local Store")
     return render_template(
         "history.html",
         analyses=analyses,
+        page=page,
+        per_page=per_page,
+        total_count=total_count,
+        total_pages=total_pages,
+        has_prev=page > 1,
+        has_next=page < total_pages,
         is_supabase=is_supabase,
         db_backend=db_backend
     )
@@ -1027,17 +1077,29 @@ def analysis_history_detail(analysis_id):
         "history.html",
         analyses=[analysis],
         selected_analysis=analysis,
+        page=1,
+        per_page=1,
+        total_count=1,
+        total_pages=1,
+        has_prev=False,
+        has_next=False,
         is_supabase=supabase_manager.is_configured(),
         db_backend="Supabase PostgreSQL" if supabase_manager.is_configured() else "Local Store"
     )
 
 @app.route("/api/history")
 def api_history_list():
-    """REST endpoint returning historical analyses from Supabase PostgreSQL."""
-    limit = request.args.get("limit", 50, type=int)
-    analyses = db_manager.get_all_analyses(limit=limit)
+    """REST endpoint returning paginated historical analyses from Supabase PostgreSQL."""
+    limit = request.args.get("limit", 10, type=int)
+    page = request.args.get("page", 1, type=int)
+    include_summary = request.args.get("include_summary", "false").lower() in ("1", "true")
+    analyses = db_manager.get_all_analyses(limit=limit, page=page, include_summary=include_summary)
+    total_count = db_manager.get_analyses_count()
     return jsonify({
         "status": "success",
+        "page": page,
+        "limit": limit,
+        "total": total_count,
         "count": len(analyses),
         "source": "supabase_postgresql" if supabase_manager.is_configured() else "local_database",
         "data": analyses

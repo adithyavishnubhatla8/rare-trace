@@ -68,7 +68,7 @@ class Visualizer:
 
     def plot_k_distance(self, k_distances, eps=Config.DEFAULT_EPS, save_filename="kdistance_plot.png"):
         """Generate and save K-distance elbow curve plot for this dataset only."""
-        fig = plt.figure(figsize=(9, 5), dpi=300)
+        fig = plt.figure(figsize=(9, 5), dpi=100)
         plt.plot(k_distances, color='#0284c7', linewidth=2.5, label='k-distance curve')
         plt.axhline(y=eps, color='#e11d48', linestyle='--', linewidth=1.8, label=f'Chosen eps = {eps}')
         
@@ -86,7 +86,7 @@ class Visualizer:
 
     def plot_pca_clusters(self, X, labels, save_filename="dbscan_clusters_pca.png"):
         """Generate 2D PCA projection scatter plot of DBSCAN clusters and noise for this dataset only."""
-        fig = plt.figure(figsize=(10, 6.5), dpi=300)
+        fig = plt.figure(figsize=(10, 6.5), dpi=100)
         
         if X.shape[1] < 2:
             X_pca = np.column_stack([X[:, 0], np.zeros(len(X))])
@@ -131,7 +131,7 @@ class Visualizer:
 
     def plot_anomaly_score_distribution(self, anomaly_scores, save_filename="anomaly_score_distribution.png"):
         """Plot histogram distribution of anomaly scores for this dataset only."""
-        fig = plt.figure(figsize=(9, 5), dpi=300)
+        fig = plt.figure(figsize=(9, 5), dpi=100)
         plt.hist(anomaly_scores, bins=30, color='#0284c7', edgecolor='#ffffff', linewidth=0.8, alpha=0.85)
         plt.axvline(x=75.0, color='#e11d48', linestyle='--', linewidth=1.5, label='High Priority Threshold (75.0)')
         plt.axvline(x=45.0, color='#d97706', linestyle=':', linewidth=1.5, label='Medium Priority Threshold (45.0)')
@@ -150,7 +150,7 @@ class Visualizer:
 
     def plot_isolation_forest_comparison(self, comp_summary, save_filename="isolation_forest_vs_dbscan.png"):
         """Plot bar comparison between DBSCAN and Isolation Forest for this dataset only."""
-        fig = plt.figure(figsize=(8, 5), dpi=300)
+        fig = plt.figure(figsize=(8, 5), dpi=100)
         
         categories = ['DBSCAN Anomalies', 'Isolation Forest Anomalies', 'Overlapping Candidates']
         counts = [

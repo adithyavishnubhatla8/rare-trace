@@ -220,21 +220,34 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
     // Data from Backend
     const pcaData = {{ pca_scatter|tojson }};
     const scoreBinsData = {{ score_bins|tojson }};
     const priorityData = {{ priority_counts|tojson }};
 
-    document.addEventListener("DOMContentLoaded", function() {
-        // 1. Interactive 2D PCA Scatter Chart
-        const pcaCtx = document.getElementById("pcaScatterChart").getContext("2d");
-        
-        // Split data into clusters and noise
-        const noisePoints = pcaData.filter(p => p.is_anomaly === 1 || p.cluster === -1);
-        const clusterPoints = pcaData.filter(p => p.is_anomaly === 0 && p.cluster !== -1);
+    let chartInstances = {};
 
-        new Chart(pcaCtx, {
+    function renderCharts() {
+        if (typeof Chart === 'undefined') {
+            setTimeout(renderCharts, 50);
+            return;
+        }
+
+        // Clean up any existing instances
+        Object.values(chartInstances).forEach(c => {
+            if (c && typeof c.destroy === 'function') c.destroy();
+        });
+
+        // 1. Interactive 2D PCA Scatter Chart
+        const pcaElem = document.getElementById("pcaScatterChart");
+        if (pcaElem) {
+            const pcaCtx = pcaElem.getContext("2d");
+            const noisePoints = pcaData.filter(p => p.is_anomaly === 1 || p.cluster === -1);
+            const clusterPoints = pcaData.filter(p => p.is_anomaly === 0 && p.cluster !== -1);
+
+            chartInstances.pca = new Chart(pcaCtx, {
             type: 'scatter',
             data: {
                 datasets: [
@@ -304,79 +317,91 @@
                     }
                 }
             }
-        });
+        }
 
         // 2. Anomaly Score Distribution Histogram
-        const scoreCtx = document.getElementById("scoreDistChart").getContext("2d");
-        new Chart(scoreCtx, {
-            type: 'bar',
-            data: {
-                labels: Object.keys(scoreBinsData),
-                datasets: [{
-                    label: 'Patients',
-                    data: Object.values(scoreBinsData),
-                    backgroundColor: [
-                        'rgba(15, 118, 110, 0.65)',
-                        'rgba(15, 118, 110, 0.75)',
-                        'rgba(217, 119, 6, 0.75)',
-                        'rgba(220, 38, 38, 0.75)',
-                        'rgba(220, 38, 38, 0.95)'
-                    ],
-                    borderColor: '#CBD5E1',
-                    borderWidth: 1,
-                    borderRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        backgroundColor: '#0B1F33',
-                        callbacks: {
-                            title: function(items) { return `Score Range: ${items[0].label}`; }
-                        }
-                    }
+        const scoreElem = document.getElementById("scoreDistChart");
+        if (scoreElem) {
+            const scoreCtx = scoreElem.getContext("2d");
+            chartInstances.score = new Chart(scoreCtx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(scoreBinsData),
+                    datasets: [{
+                        label: 'Patients',
+                        data: Object.values(scoreBinsData),
+                        backgroundColor: [
+                            'rgba(15, 118, 110, 0.65)',
+                            'rgba(15, 118, 110, 0.75)',
+                            'rgba(217, 119, 6, 0.75)',
+                            'rgba(220, 38, 38, 0.75)',
+                            'rgba(220, 38, 38, 0.95)'
+                        ],
+                        borderColor: '#CBD5E1',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
                 },
-                scales: {
-                    x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 11 } } },
-                    y: { grid: { color: '#EEF2F6' }, ticks: { precision: 0, font: { family: 'Inter', size: 11 } } }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#0B1F33',
+                            callbacks: {
+                                title: function(items) { return `Score Range: ${items[0].label}`; }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 11 } } },
+                        y: { grid: { color: '#EEF2F6' }, ticks: { precision: 0, font: { family: 'Inter', size: 11 } } }
+                    }
                 }
-            }
-        });
+            });
+        }
 
         // 3. Clinical Review Priority Breakdown Chart
-        const priorityCtx = document.getElementById("priorityChart").getContext("2d");
-        new Chart(priorityCtx, {
-            type: 'doughnut',
-            data: {
-                labels: Object.keys(priorityData),
-                datasets: [{
-                    data: Object.values(priorityData),
-                    backgroundColor: [
-                        '#DC2626', // High
-                        '#D97706', // Medium
-                        '#0F766E', // Low
-                        '#CBD5E1'  // Normative
-                    ],
-                    borderWidth: 2,
-                    borderColor: '#FFFFFF'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'right',
-                        labels: { font: { family: 'Inter', size: 11 }, boxWidth: 12 }
-                    },
-                    tooltip: { backgroundColor: '#0B1F33' }
+        const priorityElem = document.getElementById("priorityChart");
+        if (priorityElem) {
+            const priorityCtx = priorityElem.getContext("2d");
+            chartInstances.priority = new Chart(priorityCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(priorityData),
+                    datasets: [{
+                        data: Object.values(priorityData),
+                        backgroundColor: [
+                            '#DC2626', // High
+                            '#D97706', // Medium
+                            '#0F766E', // Low
+                            '#CBD5E1'  // Normative
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#FFFFFF'
+                    }]
                 },
-                cutout: '68%'
-            }
-        });
-    });
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: { font: { family: 'Inter', size: 11 }, boxWidth: 12 }
+                        },
+                        tooltip: { backgroundColor: '#0B1F33' }
+                    },
+                    cutout: '68%'
+                }
+            });
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener("DOMContentLoaded", renderCharts);
+    } else {
+        renderCharts();
+    }
 </script>
 {% endblock %}

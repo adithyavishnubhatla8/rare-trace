@@ -140,30 +140,37 @@ def execute_full_pipeline(
             df_analyzed["pca_x"] = 0.0
             df_analyzed["pca_y"] = 0.0
 
-        # Pre-compute population feature attributions & Z-scores for every patient
+        # Fast vectorized population feature attributions & Z-scores for every patient
         attributions_list = []
-        for _, p_row in df_analyzed.iterrows():
-            p_id = str(p_row.get("patient_id", ""))
-            for feat, mean_val in pop_means.items():
-                std_val = float(pop_stds.get(feat, 1.0))
-                if std_val == 0.0 or np.isnan(std_val):
-                    std_val = 1.0
-                p_val = p_row.get(feat)
-                if pd.notna(p_val) and isinstance(p_val, (int, float, np.number)):
-                    p_val = float(p_val)
-                    mean_val = float(mean_val)
-                    diff = p_val - mean_val
-                    z = diff / std_val
-                    attributions_list.append({
-                        "patient_id": p_id,
-                        "feature_name": feat,
-                        "patient_value": round(p_val, 4),
-                        "reference_mean": round(mean_val, 4),
-                        "reference_std": round(std_val, 4),
-                        "z_score": round(z, 4),
-                        "absolute_deviation": round(abs(diff), 4),
-                        "is_abnormal": 1 if abs(z) >= 1.7 else 0
-                    })
+        patient_ids = df_analyzed["patient_id"].astype(str).values
+        for feat, mean_val in pop_means.items():
+            if feat not in df_analyzed.columns:
+                continue
+            std_val = float(pop_stds.get(feat, 1.0))
+            if std_val == 0.0 or np.isnan(std_val):
+                std_val = 1.0
+
+            vals = pd.to_numeric(df_analyzed[feat], errors="coerce").values
+            valid_mask = ~np.isnan(vals)
+            if not np.any(valid_mask):
+                continue
+
+            diffs = vals - mean_val
+            z_scores = diffs / std_val
+            abs_devs = np.abs(diffs)
+            is_abnormals = (np.abs(z_scores) >= 1.7).astype(int)
+
+            for i in np.where(valid_mask)[0]:
+                attributions_list.append({
+                    "patient_id": patient_ids[i],
+                    "feature_name": feat,
+                    "patient_value": round(float(vals[i]), 4),
+                    "reference_mean": round(float(mean_val), 4),
+                    "reference_std": round(float(std_val), 4),
+                    "z_score": round(float(z_scores[i]), 4),
+                    "absolute_deviation": round(float(abs_devs[i]), 4),
+                    "is_abnormal": int(is_abnormals[i])
+                })
 
         # 6. Evaluation & Isolation Forest Comparison
         _update_stage("isolation_forest", 80, "Evaluating clustering and running Isolation Forest benchmark...")
@@ -208,12 +215,17 @@ def execute_full_pipeline(
         )
         db_manager.save_clinical_suggestions(cds_suggestions, dataset_id=dataset_id, run_id=run_id)
 
-        # Generate Structured Evidence-Based Clinical Recommendations & Provenance Records
+        # Generate Structured Evidence-Based Clinical Recommendations for priority candidates
         rec_engine = ClinicalRecommendationEngine()
         detailed_recs = []
-        for _, row in df_analyzed.iterrows():
+        anom_col = df_analyzed["is_anomaly"] if "is_anomaly" in df_analyzed.columns else 0
+        score_col = df_analyzed["anomaly_score"] if "anomaly_score" in df_analyzed.columns else 0
+        priority_mask = (anom_col == 1) | (score_col >= 35.0)
+        target_df = df_analyzed[priority_mask] if np.any(priority_mask) else df_analyzed.head(min(30, len(df_analyzed)))
+
+        for row in target_df.to_dict(orient="records"):
             p_rec = rec_engine.generate_recommendations_for_patient(
-                patient_row=row.to_dict(),
+                patient_row=row,
                 pop_means=pop_means,
                 pop_stds=pop_stds,
                 dataset_id=dataset_id,

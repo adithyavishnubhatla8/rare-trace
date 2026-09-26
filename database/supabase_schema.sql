@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS public.analyses (
 -- 2. Performance indexes
 CREATE INDEX IF NOT EXISTS idx_analyses_created_at ON public.analyses(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_analyses_id ON public.analyses(analysis_id);
+CREATE INDEX IF NOT EXISTS idx_analyses_status ON public.analyses(status);
 
 -- 3. Enable Row-Level Security (RLS)
 ALTER TABLE public.analyses ENABLE ROW LEVEL SECURITY;
