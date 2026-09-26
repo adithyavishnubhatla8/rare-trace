@@ -1131,6 +1131,15 @@ def handle_404(e):
         return dashboard()
     return render_template("404.html", message="The requested URL was not found on the server."), 404
 
+@app.errorhandler(500)
+def handle_500(e):
+    """Graceful 500 error handler returning clean details for diagnostics."""
+    import traceback
+    err_msg = str(e)
+    tb = traceback.format_exc()
+    print(f"[FATAL 500 ERROR]:\n{tb}")
+    return render_template("404.html", message=f"Internal application error: {err_msg}"), 500
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False)
 

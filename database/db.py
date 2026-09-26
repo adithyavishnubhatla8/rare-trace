@@ -65,7 +65,10 @@ class DatabaseManager:
         conn = sqlite3.connect(str(Config.SQLITE_DB_PATH), timeout=30.0)
         conn.execute("PRAGMA foreign_keys = ON;")
         try:
-            conn.execute("PRAGMA journal_mode = WAL;")
+            if Config.IS_SERVERLESS:
+                conn.execute("PRAGMA journal_mode = DELETE;")
+            else:
+                conn.execute("PRAGMA journal_mode = WAL;")
         except sqlite3.OperationalError:
             pass
         conn.execute("PRAGMA busy_timeout = 30000;")
