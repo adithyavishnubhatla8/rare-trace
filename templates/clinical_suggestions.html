@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}Clinical Insights &amp; Decision Support | RARETRACE{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-header-text">
+        <h2>Clinical Insights &amp; Decision Support</h2>
+        <p>Multi-system signal discovery &bull; Physiological domain attribution &bull; Non-prescriptive clinical guidance for <strong>{{ active_dataset.dataset_name }}</strong>.</p>
+    </div>
+    <div class="page-actions">
+        <a href="{{ url_for('export_clinical_suggestions_csv') }}" class="btn btn-secondary btn-sm">
+            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            <span>Export CSV</span>
+        </a>
+        <a href="{{ url_for('export_pdf_report') }}" class="btn btn-teal btn-sm">
+            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            <span>Clinical PDF Report</span>
+        </a>
+    </div>
+</div>
+
+<!-- KPI Summary Row -->
+<div class="kpi-row" style="margin-bottom: 1.5rem;">
+    <div class="kpi-card kpi-primary">
+        <div class="kpi-header"><span class="kpi-label">Cohort Cases Evaluated</span></div>
+        <div class="kpi-value">{{ summary.total_reviewed }}</div>
+        <div class="kpi-desc">Biomarker arrays screened</div>
+    </div>
+
+    <div class="kpi-card kpi-danger">
+        <div class="kpi-header">
+            <span class="kpi-label">High Priority Reviews</span>
+            <span class="priority-indicator priority-high"><span class="priority-dot"></span> Urgent</span>
+        </div>
+        <div class="kpi-value" style="color: var(--status-danger);">{{ summary.high_priority_count }}</div>
+        <div class="kpi-desc">Multi-domain extreme shifts</div>
+    </div>
+
+    <div class="kpi-card kpi-teal">
+        <div class="kpi-header">
+            <span class="kpi-label">Multi-System Alerts</span>
+            <span class="priority-indicator priority-low"><span class="priority-dot"></span> Complex</span>
+        </div>
+        <div class="kpi-value" style="color: var(--secondary-teal);">{{ summary.multi_system_count }}</div>
+        <div class="kpi-desc">&ge; 2 organ systems anomalous</div>
+    </div>
+
+    <div class="kpi-card kpi-warning">
+        <div class="kpi-header">
+            <span class="kpi-label">Moderate Reviews</span>
+            <span class="priority-indicator priority-medium"><span class="priority-dot"></span> Elevated</span>
+        </div>
+        <div class="kpi-value" style="color: var(--status-warning);">{{ summary.medium_priority_count }}</div>
+        <div class="kpi-desc">Single-domain deviation</div>
+    </div>
+</div>
+
+<!-- Search & Filtering Card -->
+<div class="card" style="margin-bottom: 1.5rem;">
+    <form method="GET" action="{{ url_for('clinical_suggestions_page') }}" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+        <div style="flex: 2; min-width: 220px;">
+            <label style="font-size: var(--text-xs); font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">Search Patient ID</label>
+            <input type="text" name="search" value="{{ current_search }}" placeholder="e.g. PAT-11027..." class="btn btn-secondary" style="width: 100%; text-align: left; padding: 0.5rem 0.75rem;">
+        </div>
+
+        <div style="flex: 1; min-width: 160px;">
+            <label style="font-size: var(--text-xs); font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">Clinical Priority</label>
+            <select name="priority" class="btn btn-secondary" style="width: 100%; padding: 0.5rem 0.75rem;">
+                <option value="ALL" {% if current_priority == 'ALL' %}selected{% endif %}>All Priorities</option>
+                <option value="HIGH" {% if current_priority == 'HIGH' %}selected{% endif %}>High Priority</option>
+                <option value="MEDIUM" {% if current_priority == 'MEDIUM' %}selected{% endif %}>Medium Priority</option>
+                <option value="LOW" {% if current_priority == 'LOW' %}selected{% endif %}>Low Priority</option>
+            </select>
+        </div>
+
+        <div style="flex: 1; min-width: 170px;">
+            <label style="font-size: var(--text-xs); font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">Clinical Domain</label>
+            <select name="domain" class="btn btn-secondary" style="width: 100%; padding: 0.5rem 0.75rem;">
+                <option value="ALL" {% if current_domain == 'ALL' %}selected{% endif %}>All Domains</option>
+                <option value="RENAL" {% if current_domain == 'RENAL' %}selected{% endif %}>Renal / Kidney</option>
+                <option value="CARDIOVASCULAR" {% if current_domain == 'CARDIOVASCULAR' %}selected{% endif %}>Cardiovascular</option>
+                <option value="HEMATOLOGICAL" {% if current_domain == 'HEMATOLOGICAL' %}selected{% endif %}>Hematological</option>
+                <option value="METABOLIC" {% if current_domain == 'METABOLIC' %}selected{% endif %}>Metabolic</option>
+                <option value="RESPIRATORY" {% if current_domain == 'RESPIRATORY' %}selected{% endif %}>Respiratory</option>
+            </select>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem;">
+            <button type="submit" class="btn btn-teal">Filter Cohort</button>
+            <a href="{{ url_for('clinical_suggestions_page') }}" class="btn btn-secondary">Reset</a>
+        </div>
+    </form>
+</div>
+
+<!-- Clinical Decision Support Table -->
+<div class="card">
+    <div class="card-header">
+        <div>
+            <div class="card-title">Clinical Decision-Support Triage Matrix</div>
+            <div class="card-subtitle">Showing {{ suggestions|length }} patient profiles with targeted specialist routing</div>
+        </div>
+    </div>
+
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Patient</th>
+                    <th>Priority</th>
+                    <th>Primary Domain</th>
+                    <th>Physiological Domains</th>
+                    <th>Recommended Specialist</th>
+                    <th>Suggested Workup</th>
+                    <th style="text-align: right;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in suggestions %}
+                <tr>
+                    <td>
+                        <strong style="font-family: var(--font-mono); color: var(--primary-navy);">{{ s.patient_id }}</strong>
+                    </td>
+                    <td>
+                        {% if s.clinical_priority == 'HIGH' %}
+                            <span class="priority-indicator priority-high"><span class="priority-dot"></span> HIGH</span>
+                        {% elif s.clinical_priority == 'MEDIUM' %}
+                            <span class="priority-indicator priority-medium"><span class="priority-dot"></span> MEDIUM</span>
+                        {% else %}
+                            <span class="priority-indicator priority-low"><span class="priority-dot"></span> LOW</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="status-pill" style="font-size: 0.7rem;">{{ s.primary_domain }}</span>
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 0.3rem; flex-wrap: wrap;">
+                            {% for d in s.all_domains %}
+                                <span class="status-pill" style="background: var(--bg-subtle); color: var(--text-primary); border-color: var(--border-subtle); font-size: 0.65rem;">
+                                    {{ d }}
+                                </span>
+                            {% endfor %}
+                        </div>
+                    </td>
+                    <td>
+                        {% if s.specialist_referrals %}
+                            <strong style="font-size: var(--text-xs); color: var(--text-primary);">{{ s.specialist_referrals[0].specialty }}</strong>
+                        {% else %}
+                            <span style="font-size: var(--text-xs); color: var(--text-muted);">Internal Medicine</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if s.investigation_suggestions %}
+                            <span style="font-size: var(--text-xs); color: var(--text-secondary);">{{ s.investigation_suggestions[0].test_name }}</span>
+                        {% else %}
+                            <span style="font-size: var(--text-xs); color: var(--text-muted);">Baseline profile</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right;">
+                        <a href="{{ url_for('patient_recommendations', patient_id=s.patient_id) }}" class="btn btn-teal btn-sm" style="font-size: 0.72rem; padding: 0.25rem 0.55rem;">
+                            Dossier &rarr;
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2.5rem;">
+                        No patient records match the selected filter criteria.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis History | RARETRACE — Supabase PostgreSQL{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-header-text">
+        <h2>Analysis History &amp; Audit Trail</h2>
+        <p>Centralized PostgreSQL audit trail of all unsupervised DBSCAN anomaly detection runs stored in Supabase.</p>
+    </div>
+    <div class="page-actions">
+        <a href="{{ url_for('datasets_page') }}" class="btn btn-teal">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            <span>+ New Analysis Run</span>
+        </a>
+        <a href="{{ url_for('api_history_list') }}" target="_blank" class="btn btn-secondary">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+            <span>REST API Endpoint</span>
+        </a>
+    </div>
+</div>
+
+<!-- Database Connectivity & Stat Overview -->
+<div class="kpi-grid" style="margin-bottom: 1.5rem;">
+    <div class="kpi-card">
+        <div class="kpi-header">
+            <span class="kpi-title">Analyses Stored</span>
+            <div class="kpi-icon-wrap" style="color: var(--primary-navy);">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+            </div>
+        </div>
+        <div class="kpi-value">{{ analyses|length }}</div>
+        <div class="kpi-sub">Total historical DBSCAN pipelines</div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-header">
+            <span class="kpi-title">Database Storage</span>
+            <div class="kpi-icon-wrap" style="color: var(--secondary-teal);">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+            </div>
+        </div>
+        <div class="kpi-value" style="font-size: 1.25rem; font-weight: 700; color: var(--secondary-teal); display: flex; align-items: center; gap: 0.5rem; margin-top: 0.35rem;">
+            <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #10b981;"></span>
+            {{ db_backend }}
+        </div>
+        <div class="kpi-sub">{{ 'Supabase Cloud PostgreSQL' if is_supabase else 'Local Store (Supabase Sync Ready)' }}</div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-header">
+            <span class="kpi-title">Total Records Evaluated</span>
+            <div class="kpi-icon-wrap" style="color: #6366f1;">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+            </div>
+        </div>
+        <div class="kpi-value">
+            {% set total_recs = namespace(val=0) %}
+            {% for a in analyses %}
+                {% set total_recs.val = total_recs.val + (a.total_records|default(0)|int) %}
+            {% endfor %}
+            {{ total_recs.val|int }}
+        </div>
+        <div class="kpi-sub">De-identified clinical observations</div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-header">
+            <span class="kpi-title">Total Candidates Flagged</span>
+            <div class="kpi-icon-wrap" style="color: #f59e0b;">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            </div>
+        </div>
+        <div class="kpi-value">
+            {% set total_anoms = namespace(val=0) %}
+            {% for a in analyses %}
+                {% set total_anoms.val = total_anoms.val + (a.anomalies|default(0)|int) %}
+            {% endfor %}
+            {{ total_anoms.val|int }}
+        </div>
+        <div class="kpi-sub">High-priority noise points (label = -1)</div>
+    </div>
+</div>
+
+<!-- Privacy & Security Guarantee Banner -->
+<div class="card" style="margin-bottom: 1.5rem; background: #f0fdfa; border-left: 4px solid var(--secondary-teal); padding: 1rem 1.25rem;">
+    <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+        <svg width="20" height="20" style="color: var(--secondary-teal); flex-shrink: 0; margin-top: 2px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+        <div>
+            <div style="font-size: var(--text-sm); font-weight: 700; color: #115e59;">HIPAA &amp; Zero-PII Storage Architecture</div>
+            <div style="font-size: var(--text-xs); color: #0f766e; margin-top: 0.15rem;">
+                In accordance with medical data privacy guidelines, Supabase PostgreSQL strictly stores pipeline execution metadata, DBSCAN hyperparameters, and mathematical cohort metrics. No patient names, MRNs, or sensitive raw records are transmitted or stored remotely.
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Historical Analyses Table -->
+<div class="card">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+        <div>
+            <h3 class="card-title">Stored Analysis Records</h3>
+            <span class="card-subtitle">Complete run audit history from Supabase `analyses` table</span>
+        </div>
+        <div>
+            <span class="badge badge-teal">{{ analyses|length }} Runs Recorded</span>
+        </div>
+    </div>
+
+    {% if analyses and analyses|length > 0 %}
+    <div class="table-container" style="overflow-x: auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Dataset / Source</th>
+                    <th>Date &amp; Time</th>
+                    <th style="text-align: right;">Records</th>
+                    <th style="text-align: right;">Clusters</th>
+                    <th style="text-align: right;">Anomalies</th>
+                    <th style="text-align: right;">Anomaly %</th>
+                    <th>DBSCAN Parameters</th>
+                    <th>Status</th>
+                    <th style="text-align: center;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in analyses %}
+                <tr>
+                    <td>
+                        <div style="font-weight: 700; color: var(--text-primary);">{{ a.dataset_name }}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">{{ a.dataset_filename }}</div>
+                    </td>
+                    <td>
+                        <div style="font-size: var(--text-xs); color: var(--text-primary); font-weight: 600;">
+                            {{ a.created_at[:10] if a.created_at else 'Recent' }}
+                        </div>
+                        <div style="font-size: 0.7rem; color: var(--text-muted); font-family: var(--font-mono);">
+                            {{ a.created_at[11:19] if a.created_at and a.created_at|length >= 19 else '' }}
+                        </div>
+                    </td>
+                    <td style="text-align: right; font-weight: 600;">{{ "{:,}".format(a.total_records|default(0)|int) }}</td>
+                    <td style="text-align: right; font-weight: 600;">
+                        <span class="badge" style="background: #e0f2fe; color: #0369a1;">{{ a.total_clusters }} clusters</span>
+                    </td>
+                    <td style="text-align: right; font-weight: 700; color: #dc2626;">
+                        {{ a.anomalies }} cases
+                    </td>
+                    <td style="text-align: right;">
+                        <span class="badge {% if a.anomaly_percentage > 5.0 %}badge-danger{% else %}badge-teal{% endif %}" style="font-weight: 700;">
+                            {{ "%.2f"|format(a.anomaly_percentage|default(0)|float) }}%
+                        </span>
+                    </td>
+                    <td>
+                        <div style="font-size: 0.75rem; font-family: var(--font-mono); color: var(--text-secondary);">
+                            eps: <strong>{{ "%.3f"|format(a.eps|float) if a.eps is not none else "auto" }}</strong> | min_pts: <strong>{{ a.min_samples }}</strong>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge badge-teal" style="text-transform: capitalize;">{{ a.status|default('completed') }}</span>
+                    </td>
+                    <td style="text-align: center;">
+                        <div style="display: flex; gap: 0.35rem; justify-content: center;">
+                            <button class="btn btn-secondary btn-sm" onclick="openAnalysisDetails('{{ a.analysis_id or a.id }}')" title="View Stored Statistics">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                <span>Stats</span>
+                            </button>
+                            {% if a.analysis_id %}
+                            <a href="{{ url_for('switch_dataset', dataset_id=a.analysis_id) }}" class="btn btn-teal btn-sm" title="Open Workspace Dashboard">
+                                <span>Open &rarr;</span>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 3rem 1.5rem;">
+        <div style="font-size: 2.5rem; margin-bottom: 0.5rem; color: var(--text-muted);">&#128269;</div>
+        <h3 style="color: var(--text-primary); margin-bottom: 0.5rem;">No Analysis Records Found</h3>
+        <p style="color: var(--text-muted); max-width: 500px; margin: 0 auto 1.5rem auto; font-size: var(--text-sm);">
+            No machine learning analyses have been recorded yet. Upload a clinical dataset to run DBSCAN anomaly detection and automatically persist results to Supabase PostgreSQL.
+        </p>
+        <a href="{{ url_for('datasets_page') }}" class="btn btn-teal">+ Upload Clinical Dataset</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal: Analysis Details & Statistics Dossier -->
+<div id="analysisModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center; padding: 1rem;">
+    <div class="card" style="width: 100%; max-width: 640px; max-height: 90vh; overflow-y: auto; background: #ffffff; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2); padding: 0;">
+        <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <div class="brand-badge" style="background: var(--primary-navy); color: #fff; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.7rem;">METADATA</div>
+                <h3 id="modalTitle" style="font-size: 1.15rem; font-weight: 800; color: var(--text-primary); margin: 0;">Analysis Details</h3>
+            </div>
+            <button onclick="closeAnalysisDetails()" style="background: none; border: none; font-size: 1.5rem; line-height: 1; cursor: pointer; color: var(--text-muted);">&times;</button>
+        </div>
+
+        <div style="padding: 1.5rem;">
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1.25rem;">
+                <div style="background: #f8fafc; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border-light);">
+                    <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Dataset Filename</div>
+                    <div id="modalFilename" style="font-weight: 700; color: var(--text-primary); font-family: var(--font-mono); font-size: 0.85rem; word-break: break-all;">-</div>
+                </div>
+                <div style="background: #f8fafc; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border-light);">
+                    <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Execution Timestamp</div>
+                    <div id="modalCreatedAt" style="font-weight: 700; color: var(--text-primary); font-size: 0.85rem;">-</div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 1.25rem;">
+                <div style="border: 1px solid var(--border-light); padding: 0.75rem; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;">Total Records</div>
+                    <div id="modalTotalRecords" style="font-size: 1.25rem; font-weight: 800; color: var(--text-primary);">-</div>
+                </div>
+                <div style="border: 1px solid var(--border-light); padding: 0.75rem; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;">Clusters Formed</div>
+                    <div id="modalClusters" style="font-size: 1.25rem; font-weight: 800; color: var(--secondary-teal);">-</div>
+                </div>
+                <div style="border: 1px solid var(--border-light); padding: 0.75rem; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;">Anomalies (Noise)</div>
+                    <div id="modalAnomalies" style="font-size: 1.25rem; font-weight: 800; color: #dc2626;">-</div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 1.25rem;">
+                <div style="border: 1px solid var(--border-light); padding: 0.75rem; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;">Anomaly %</div>
+                    <div id="modalAnomalyPct" style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary);">-</div>
+                </div>
+                <div style="border: 1px solid var(--border-light); padding: 0.75rem; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;">DBSCAN eps</div>
+                    <div id="modalEps" style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary);">-</div>
+                </div>
+                <div style="border: 1px solid var(--border-light); padding: 0.75rem; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;">Min Samples</div>
+                    <div id="modalMinSamples" style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary);">-</div>
+                </div>
+            </div>
+
+            <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid var(--border-light); margin-bottom: 1.25rem;">
+                <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.35rem;">Silhouette Score &amp; Quality</div>
+                <div id="modalSilhouette" style="font-size: 0.85rem; color: var(--text-secondary);">-</div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid var(--border-light); padding-top: 1rem;">
+                <button type="button" class="btn btn-secondary" onclick="closeAnalysisDetails()">Close</button>
+                <a id="modalWorkspaceLink" href="#" class="btn btn-teal">Open Workspace &rarr;</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const analysesData = {{ analyses|tojson|safe }};
+
+function openAnalysisDetails(analysisId) {
+    const item = analysesData.find(a => (a.analysis_id === analysisId || a.id === analysisId));
+    if (!item) return;
+
+    document.getElementById("modalTitle").innerText = item.dataset_name || "Analysis Details";
+    document.getElementById("modalFilename").innerText = item.dataset_filename || "N/A";
+    document.getElementById("modalCreatedAt").innerText = item.created_at ? item.created_at.replace("T", " ").substring(0, 19) : "Recorded";
+    document.getElementById("modalTotalRecords").innerText = (item.total_records || 0).toLocaleString();
+    document.getElementById("modalClusters").innerText = item.total_clusters || 0;
+    document.getElementById("modalAnomalies").innerText = item.anomalies || 0;
+    document.getElementById("modalAnomalyPct").innerText = (item.anomaly_percentage !== undefined ? Number(item.anomaly_percentage).toFixed(2) + "%" : "N/A");
+    document.getElementById("modalEps").innerText = (item.eps !== null && item.eps !== undefined) ? Number(item.eps).toFixed(3) : "Auto";
+    document.getElementById("modalMinSamples").innerText = item.min_samples || "N/A";
+    
+    const sil = (item.silhouette_score !== null && item.silhouette_score !== undefined) ? Number(item.silhouette_score).toFixed(4) : "N/A";
+    document.getElementById("modalSilhouette").innerText = `Silhouette coefficient: ${sil}. Clustering quality evaluated against standard unsupervised validation benchmarks.`;
+
+    const link = document.getElementById("modalWorkspaceLink");
+    if (item.analysis_id) {
+        link.href = "{{ url_for('switch_dataset', dataset_id='') }}" + item.analysis_id;
+        link.style.display = "inline-flex";
+    } else {
+        link.style.display = "none";
+    }
+
+    const modal = document.getElementById("analysisModal");
+    modal.style.display = "flex";
+}
+
+function closeAnalysisDetails() {
+    document.getElementById("analysisModal").style.display = "none";
+}
+
+// Close modal when clicking backdrop
+document.getElementById("analysisModal").addEventListener("click", function(e) {
+    if (e.target === this) {
+        closeAnalysisDetails();
+    }
+});
+</script>
+{% endblock %}

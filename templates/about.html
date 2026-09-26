@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}About Project | RARETRACE{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-header-text">
+        <h2>About RARETRACE</h2>
+        <p>Tracing Hidden Rare-Disease Patterns &bull; Unsupervised Anomaly Detection Platform &bull; B.Tech Academic Capstone</p>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+    <div>
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-title">Project Abstract &amp; Clinical Motivation</div>
+            <p style="font-size: var(--text-sm); color: var(--text-secondary); line-height: 1.7; margin-top: 0.5rem; margin-bottom: 1rem;">
+                <strong>RARETRACE</strong> addresses the persistent healthcare bottleneck where rare clinical conditions remain unidentified due to the extreme scarcity of labeled training exemplars. In the absence of ground-truth diagnostic labels, conventional supervised classifiers fail.
+            </p>
+            <p style="font-size: var(--text-sm); color: var(--text-secondary); line-height: 1.7; margin-bottom: 1rem;">
+                By employing <strong>Density-Based Spatial Clustering of Applications with Noise (DBSCAN)</strong> coupled with an <strong>Isolation Forest Benchmark</strong> on standardized multidimensional biomarker arrays, RARETRACE naturally groups normative cohort majorities into dense topological clusters while isolating low-density outliers as <strong>Candidate Rare-Disease Cases (Noise: -1)</strong>.
+            </p>
+            <div class="disclaimer-banner" style="margin-bottom: 0;">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span><strong>MEDICAL DISCLAIMER:</strong> RARETRACE is an academic machine-learning research prototype for identifying statistical anomalies in datasets. It does not provide medical diagnosis or clinical advice. DBSCAN anomalies indicate statistical noise points and must not be interpreted as confirmed clinical diagnoses.</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Core Analytical Architecture</div>
+            <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.75rem;">
+                <div style="padding: 0.65rem 0.85rem; background: var(--bg-subtle); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); font-size: var(--text-xs);">
+                    <strong style="color: var(--primary-navy);">1. Schema-Agnostic Ingestion:</strong> Dynamic patient CSV parsing, type inference, and relational isolation in PostgreSQL / SQLite.
+                </div>
+                <div style="padding: 0.65rem 0.85rem; background: var(--bg-subtle); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); font-size: var(--text-xs);">
+                    <strong style="color: var(--primary-navy);">2. Unsupervised DBSCAN:</strong> Density connectivity parameterization via automated K-distance elbow curve detection.
+                </div>
+                <div style="padding: 0.65rem 0.85rem; background: var(--bg-subtle); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); font-size: var(--text-xs);">
+                    <strong style="color: var(--primary-navy);">3. Z-Score Explainability:</strong> Attribution of patient outlier status to specific organ systems (|Z| &ge; 1.7 and |Z| &ge; 3.0).
+                </div>
+                <div style="padding: 0.65rem 0.85rem; background: var(--bg-subtle); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); font-size: var(--text-xs);">
+                    <strong style="color: var(--primary-navy);">4. Recommendation Engine:</strong> 4-tier clinical priority stratification and 6-category structured decision-support dossiers.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card" style="border-top: 4px solid var(--secondary-teal); margin-bottom: 1.5rem;">
+            <div class="card-title">Academic &amp; Institutional Credits</div>
+            <table class="data-table" style="margin-top: 0.75rem;">
+                <tr>
+                    <th style="width: 35%;">Project Type</th>
+                    <td>B.Tech Final Year Capstone</td>
+                </tr>
+                <tr>
+                    <th>Department</th>
+                    <td>Computer Science &amp; Information Technology</td>
+                </tr>
+                <tr>
+                    <th>Academic Session</th>
+                    <td>2026–2027</td>
+                </tr>
+                <tr>
+                    <th>Faculty Guide</th>
+                    <td>
+                        <strong>I V Sai Lakshmi Haritha</strong><br>
+                        <span style="font-size: var(--text-xs); color: var(--text-muted);">Assistant Professor, Dept. of CS&amp;IT</span>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Student Authors</th>
+                    <td>
+                        <strong>Adithya Vishnubhatla</strong><br>
+                        <strong>Pavan Kumar</strong>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Technical Stack</div>
+            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.75rem;">
+                <span class="status-pill">Python 3.14</span>
+                <span class="status-pill">Flask Framework</span>
+                <span class="status-pill">Scikit-Learn DBSCAN</span>
+                <span class="status-pill">Chart.js 4</span>
+                <span class="status-pill">PostgreSQL / SQLite</span>
+                <span class="status-pill">FPDF Document Engine</span>
+                <span class="status-pill">Native Android WebView</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}RARETRACE — Clinical Intelligence &amp; Anomaly Detection{% endblock %}</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="app-shell" id="appShell">
+        <!-- APP SIDEBAR (Permanent) -->
+        <aside class="app-sidebar" id="appSidebar">
+            <!-- Sidebar Header / Branding -->
+            <div class="sidebar-header">
+                <div class="brand-logo-icon">
+                    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="RARETRACE Logo">
+                </div>
+                <div class="brand-title-wrap">
+                    <div class="brand-name">
+                        RARETRACE
+                        <span class="brand-badge">ML</span>
+                    </div>
+                    <span class="brand-sub">Clinical Intelligence Platform</span>
+                </div>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="sidebar-nav">
+                <div class="sidebar-group-title">Analytics &amp; Discovery</div>
+                
+                <a href="{{ url_for('dashboard') }}" class="sidebar-link {% if request.endpoint == 'dashboard' %}active{% endif %}" data-tooltip="Dashboard">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"></path></svg>
+                    <span>Dashboard</span>
+                </a>
+
+                <a href="{{ url_for('datasets_page') }}" class="sidebar-link {% if request.endpoint in ['datasets_page', 'dataset_detail'] %}active{% endif %}" data-tooltip="Clinical Datasets">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"></path></svg>
+                    <span>Datasets</span>
+                </a>
+
+                <a href="{{ url_for('model_analysis') }}" class="sidebar-link {% if request.endpoint == 'model_analysis' %}active{% endif %}" data-tooltip="Model Analysis">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    <span>Model Analysis</span>
+                </a>
+
+                <a href="{{ url_for('analysis_history') }}" class="sidebar-link {% if request.endpoint in ['analysis_history', 'analysis_history_detail'] %}active{% endif %}" data-tooltip="Analysis History">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span>Analysis History</span>
+                </a>
+
+                <div class="sidebar-group-title">Patient Dossiers</div>
+
+                <a href="{{ url_for('anomalies') }}" class="sidebar-link {% if request.endpoint == 'anomalies' %}active{% endif %}" data-tooltip="Candidate Rare Cases">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"></path></svg>
+                    <span>Candidate Cases</span>
+                </a>
+
+                <a href="{{ url_for('patients') }}" class="sidebar-link {% if request.endpoint in ['patients', 'patient_detail'] %}active{% endif %}" data-tooltip="Patient Cohort">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"></path></svg>
+                    <span>Patient Cohort</span>
+                </a>
+
+                <a href="{{ url_for('clinical_suggestions_page') }}" class="sidebar-link {% if request.endpoint in ['clinical_suggestions_page', 'medical_suggestions_page', 'patient_clinical_suggestions', 'patient_medical_suggestions'] %}active{% endif %}" data-tooltip="Clinical Insights &amp; CDS">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z"></path></svg>
+                    <span>Clinical Insights</span>
+                </a>
+
+                <div class="sidebar-group-title">Documentation &amp; Reports</div>
+
+                <a href="{{ url_for('reports_hub') }}" class="sidebar-link {% if request.endpoint == 'reports_hub' %}active{% endif %}" data-tooltip="Reports &amp; Exports">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"></path></svg>
+                    <span>Reports &amp; Exports</span>
+                </a>
+
+                <a href="{{ url_for('about') }}" class="sidebar-link {% if request.endpoint == 'about' %}active{% endif %}" data-tooltip="About Project">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"></path></svg>
+                    <span>About Project</span>
+                </a>
+            </nav>
+
+            <!-- Sidebar Footer -->
+            <div class="sidebar-footer">
+                <div class="sidebar-footer-text">
+                    <div>B.Tech Capstone 2026–27</div>
+                    <div>Dept. of CSE &bull; Unsupervised ML</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- APP MAIN WRAPPER -->
+        <div class="app-main">
+            <!-- TOP NAVIGATION BAR -->
+            <header class="app-topbar">
+                <div class="topbar-left">
+                    <!-- Active Dataset Dropdown Switcher -->
+                    {% if all_datasets %}
+                    <div class="topbar-dataset-selector">
+                        <span class="dataset-label">Active Cohort:</span>
+                        <select class="dataset-select-input" onchange="if(this.value) window.location.href='{{ url_for('switch_dataset', dataset_id='') }}' + this.value;">
+                            {% for d in all_datasets %}
+                                <option value="{{ d.dataset_id }}" {% if active_dataset and d.dataset_id == active_dataset.dataset_id %}selected{% endif %}>
+                                    {{ d.dataset_name }} ({{ d.record_count }} records)
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="topbar-right">
+                    <!-- Analysis Status Pill -->
+                    {% if active_dataset %}
+                    <div class="status-pill">
+                        <span class="status-indicator-dot pulse"></span>
+                        <span>Model Active &bull; {{ active_dataset.record_count }} Records</span>
+                    </div>
+                    {% endif %}
+
+                    <!-- Help Modal Trigger -->
+                    <button class="btn btn-secondary btn-sm" onclick="openHelpModal()" style="padding: 0.35rem 0.6rem;">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span>Help</span>
+                    </button>
+
+                    <!-- Researcher / Capstone Badge -->
+                    <div class="user-badge">
+                        <div class="user-avatar">RT</div>
+                        <div class="user-info">
+                            <span>Clinical Research</span>
+                            <span class="user-role">Anomaly Intelligence</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- MAIN CONTENT AREA -->
+            <main class="app-content">
+                <!-- Flashed Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert-toast {% if category in ['danger', 'error'] %}toast-danger{% else %}toast-success{% endif %}">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                <span>{{ message }}</span>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <!-- Mandatory Medical & Academic Disclaimer Banner -->
+                <div class="disclaimer-banner">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    <div>
+                        <strong>MEDICAL &amp; ACADEMIC DISCLAIMER:</strong>
+                        RARETRACE is an academic machine-learning research prototype for identifying statistical anomalies in datasets. It does not provide medical diagnosis or clinical advice. DBSCAN anomaly detections identify statistical outliers and do not constitute confirmed clinical diagnoses.
+                    </div>
+                </div>
+
+                {% block content %}{% endblock %}
+            </main>
+
+            <!-- APPLICATION FOOTER -->
+            <footer class="app-footer" style="padding: 1.25rem 2rem; background: var(--bg-card); border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 0.5rem; text-align: center;">
+                <div style="font-weight: 700; color: var(--primary-navy); font-size: var(--text-sm);">
+                    RARETRACE &bull; Rare-Disease Case Identification Using DBSCAN-Based Anomaly Detection
+                </div>
+                <div style="display: flex; justify-content: center; align-items: center; gap: 1.5rem; flex-wrap: wrap; font-size: var(--text-sm); color: var(--text-primary);">
+                    <div><strong>Adithya Vishnubhatla</strong> &bull; <strong>Pavan Kumar</strong></div>
+                    <div style="color: var(--border-strong);">&bull;</div>
+                    <div><strong>Guide: I V Sai Lakshmi Haritha</strong></div>
+                    <div style="color: var(--border-strong);">&bull;</div>
+                    <div style="font-weight: 700; color: var(--secondary-teal);">B.Tech Capstone Project 2026–2027</div>
+                </div>
+                <div style="font-size: 0.725rem; color: var(--text-muted); max-width: 900px; margin: 0 auto; line-height: 1.4;">
+                    RARETRACE is an academic machine-learning research prototype for identifying statistical anomalies in datasets. It does not provide medical diagnosis or clinical advice.
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="helpModal" style="display: none; position: fixed; inset: 0; background: rgba(11, 31, 51, 0.6); z-index: 2000; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+        <div style="background: #FFFFFF; border-radius: var(--radius-lg); max-width: 540px; width: 90%; padding: 1.75rem; box-shadow: var(--shadow-lg); border: 1px solid var(--border-subtle);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.75rem;">
+                <h3 style="font-size: var(--text-lg); font-weight: 700; color: var(--primary-navy);">RARETRACE Clinical Intelligence Guide</h3>
+                <button onclick="closeHelpModal()" style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+            </div>
+            <div style="font-size: var(--text-sm); color: var(--text-secondary); line-height: 1.6; display: flex; flex-direction: column; gap: 0.75rem;">
+                <p><strong>1. How does Anomaly Detection work?</strong><br>
+                RARETRACE runs unsupervised DBSCAN clustering on standardized patient biomarker arrays. Patients falling into low-density sparse regions (noise label <code>-1</code>) are flagged as candidate rare-disease cases.</p>
+                <p><strong>2. What is the Anomaly Score?</strong><br>
+                Calculated using Euclidean k-NN distance in multi-dimensional standardized space, scaled from 0 to 100.</p>
+                <p><strong>3. How are recommendations generated?</strong><br>
+                The Clinical Recommendation Engine computes feature-level Z-scores relative to the normative cohort mean, matching identified physiological domain deviations (Cardiovascular, Renal, Metabolic, Hematological) to clinical guidelines.</p>
+            </div>
+            <div style="margin-top: 1.25rem; text-align: right;">
+                <button class="btn btn-primary btn-sm" onclick="closeHelpModal()">Got it</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openHelpModal() {
+            const m = document.getElementById('helpModal');
+            m.style.display = 'flex';
+        }
+
+        function closeHelpModal() {
+            const m = document.getElementById('helpModal');
+            m.style.display = 'none';
+        }
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

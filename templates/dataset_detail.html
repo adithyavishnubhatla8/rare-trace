@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Dataset Details: {{ dataset.dataset_name }} | RARETRACE{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2>Dataset Profile: {{ dataset.dataset_name }}</h2>
+        <p>Source Attribution: <strong>{{ dataset.source }}</strong> &bull; Dataset ID: <code>{{ dataset.dataset_id }}</code></p>
+    </div>
+    <div style="display: flex; gap: 0.75rem;">
+        <a href="{{ url_for('switch_dataset', dataset_id=dataset.dataset_id) }}" class="btn btn-primary">
+            Set as Active Workspace
+        </a>
+        <a href="{{ url_for('datasets_page') }}" class="btn btn-secondary">
+            &larr; All Datasets
+        </a>
+    </div>
+</div>
+
+<!-- Dataset Metadata & Metrics Grid -->
+<div class="kpi-grid">
+    <div class="kpi-card">
+        <div class="kpi-label">Dataset Source</div>
+        <div class="kpi-value" style="font-size: 1.4rem; color: #0284c7;">{{ dataset.source }}</div>
+        <div class="kpi-sub">Origin Repository</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-label">Total Records</div>
+        <div class="kpi-value">{{ dataset.record_count }}</div>
+        <div class="kpi-sub">Cohort Sample Count</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-label">Feature Columns</div>
+        <div class="kpi-value">{{ dataset.feature_count }}</div>
+        <div class="kpi-sub">Clinical Variables</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-label">DBSCAN Clusters</div>
+        <div class="kpi-value" style="color: #0d9488;">{{ latest_run.number_of_clusters or 'N/A' }}</div>
+        <div class="kpi-sub">Partitioned Cohorts</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-label">Candidate Anomalies</div>
+        <div class="kpi-value" style="color: #e11d48;">{{ latest_run.number_of_anomalies or 0 }}</div>
+        <div class="kpi-sub">DBSCAN Noise (-1)</div>
+    </div>
+</div>
+
+<div class="dashboard-grid" style="grid-template-columns: 2fr 1fr;">
+    <!-- Left: Overview & DBSCAN parameters -->
+    <div>
+        <div class="card">
+            <div class="card-title">Dataset Description &amp; Provenance</div>
+            <p style="font-size: 0.95rem; color: #334155; line-height: 1.7; margin-bottom: 1rem;">
+                {{ dataset.description or 'No clinical description recorded for this dataset.' }}
+            </p>
+            <table class="table" style="font-size: 0.88rem;">
+                <tr><th style="width: 35%;">Source Filename</th><td><code>{{ dataset.filename }}</code></td></tr>
+                <tr><th>Upload Timestamp</th><td>{{ dataset.upload_date }}</td></tr>
+                <tr><th>Processing Status</th><td><span class="badge badge-normal">{{ dataset.status }}</span></td></tr>
+                <tr><th>Statistical Boundary</th><td>Isolated to <code>{{ dataset.dataset_id }}</code> cohort only</td></tr>
+            </table>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Dataset-Specific Model Execution</div>
+            <table class="table" style="font-size: 0.88rem;">
+                <tr><th style="width: 35%;">Algorithm</th><td>{{ latest_run.algorithm or 'DBSCAN' }}</td></tr>
+                <tr><th>Epsilon (&epsilon;)</th><td><strong>{{ latest_run.eps or 'N/A' }}</strong></td></tr>
+                <tr><th>Min Samples (MinPts)</th><td><strong>{{ latest_run.min_samples or 'N/A' }}</strong></td></tr>
+                <tr><th>Silhouette Score</th><td>{{ latest_run.silhouette_score or 'N/A' }}</td></tr>
+                <tr><th>Analysis Timestamp</th><td>{{ latest_run.created_at or 'N/A' }}</td></tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Right: Quick Actions & Danger Zone -->
+    <div>
+        <div class="card">
+            <div class="card-title">Dataset Actions</div>
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <a href="{{ url_for('export_pdf_report', dataset_id=dataset.dataset_id) }}" class="btn btn-primary" style="justify-content: center;">
+                    Download PDF Report
+                </a>
+                <a href="{{ url_for('export_csv_report', dataset_id=dataset.dataset_id) }}" class="btn btn-secondary" style="justify-content: center;">
+                    Download Analyzed CSV
+                </a>
+                <a href="{{ url_for('dashboard', dataset_id=dataset.dataset_id) }}" class="btn btn-secondary" style="justify-content: center;">
+                    View Dashboard
+                </a>
+                <a href="{{ url_for('patients', dataset_id=dataset.dataset_id) }}" class="btn btn-secondary" style="justify-content: center;">
+                    View Patients Table
+                </a>
+                <a href="{{ url_for('anomalies', dataset_id=dataset.dataset_id) }}" class="btn btn-secondary" style="justify-content: center;">
+                    View Candidate Cases
+                </a>
+            </div>
+        </div>
+
+        <div class="card" style="border: 1px solid #fecdd3; background: #fff1f2;">
+            <div class="card-title" style="color: #9f1239;">Permanent Dataset Deletion</div>
+            <p style="font-size: 0.82rem; color: #9f1239; margin-bottom: 1rem; line-height: 1.5;">
+                Deleting this dataset permanently removes all {{ dataset.record_count }} patient records, DBSCAN clustering results, anomaly scores, diagnostic plots, and reports belonging to this source. Other datasets remain unaffected.
+            </p>
+            <form action="{{ url_for('delete_dataset', dataset_id=dataset.dataset_id) }}" method="POST" onsubmit="return confirm('Are you absolutely certain you want to permanently delete dataset {{ dataset.dataset_name }}?');">
+                <button type="submit" class="btn" style="background: #e11d48; color: #fff; width: 100%; justify-content: center;">
+                    Delete Dataset &amp; All Data
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

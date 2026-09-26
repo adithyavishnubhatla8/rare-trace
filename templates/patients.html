@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Patient Cohort Records | RARETRACE{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-header-text">
+        <h2>Patient Cohort Records</h2>
+        <p>Dynamic clinical biometric measurements &amp; spatial DBSCAN cluster partitionings for <strong>{{ active_dataset.dataset_name }}</strong> ({{ total_count }} Records).</p>
+    </div>
+    <div class="page-actions">
+        <a href="{{ url_for('export_csv_report') }}" class="btn btn-secondary btn-sm">
+            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            <span>Export Cohort CSV</span>
+        </a>
+    </div>
+</div>
+
+<!-- Search & Filtering Card -->
+<div class="card" style="margin-bottom: 1.5rem;">
+    <form method="GET" action="{{ url_for('patients') }}" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
+        <div style="flex: 2; min-width: 220px;">
+            <label style="font-size: var(--text-xs); font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">Search Patient Records</label>
+            <input type="text" name="search" class="btn btn-secondary" style="width: 100%; text-align: left; padding: 0.5rem 0.75rem;" placeholder="Search Patient ID or text features..." value="{{ search_query }}">
+        </div>
+
+        <div style="flex: 1; min-width: 160px;">
+            <label style="font-size: var(--text-xs); font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">Anomaly Status</label>
+            <select name="anomaly" class="btn btn-secondary" style="width: 100%; padding: 0.5rem 0.75rem;">
+                <option value="all" {% if filter_anomaly == 'all' %}selected{% endif %}>All Records</option>
+                <option value="1" {% if filter_anomaly == '1' %}selected{% endif %}>Candidate Rare Cases (1)</option>
+                <option value="0" {% if filter_anomaly == '0' %}selected{% endif %}>Normative Cohort (0)</option>
+            </select>
+        </div>
+
+        <div style="flex: 1; min-width: 160px;">
+            <label style="font-size: var(--text-xs); font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">DBSCAN Cluster</label>
+            <select name="cluster" class="btn btn-secondary" style="width: 100%; padding: 0.5rem 0.75rem;">
+                <option value="all" {% if filter_cluster == 'all' %}selected{% endif %}>All Clusters</option>
+                {% for c in clusters_list %}
+                    <option value="{{ c }}" {% if filter_cluster == c|string %}selected{% endif %}>
+                        {% if c == -1 %}Noise / Outliers (-1){% else %}Cluster {{ c }}{% endif %}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem;">
+            <button type="submit" class="btn btn-teal">Filter</button>
+            <a href="{{ url_for('patients') }}" class="btn btn-secondary">Reset</a>
+        </div>
+    </form>
+</div>
+
+<!-- Dynamic Patient Cohort Data Table -->
+<div class="card">
+    <div class="card-header">
+        <div>
+            <div class="card-title">Patient Measurements Matrix</div>
+            <div class="card-subtitle">Displaying {{ patients|length }} of {{ total_count }} records in active dataset</div>
+        </div>
+    </div>
+
+    <div class="table-wrap">
+        <table class="data-table" id="patientsTable">
+            <thead>
+                <tr>
+                    <th>Patient ID</th>
+                    {% for col in display_cols %}
+                        {% if col != 'patient_id' %}
+                            <th>{{ col.replace('_', ' ').title() }}</th>
+                        {% endif %}
+                    {% endfor %}
+                    <th>Cluster</th>
+                    <th>Density Status</th>
+                    <th style="text-align: right;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in patients %}
+                <tr>
+                    <td>
+                        <strong style="font-family: var(--font-mono); color: var(--primary-navy);">{{ p.patient_id }}</strong>
+                    </td>
+                    {% for col in display_cols %}
+                        {% if col != 'patient_id' %}
+                            <td style="font-family: var(--font-mono); font-size: var(--text-xs);">{{ p[col] }}</td>
+                        {% endif %}
+                    {% endfor %}
+                    <td>
+                        {% if p.cluster_label == -1 %}
+                            <span class="status-pill" style="background: var(--status-danger-bg); color: var(--status-danger); border-color: var(--status-danger-border); font-size: 0.7rem;">
+                                Noise (-1)
+                            </span>
+                        {% else %}
+                            <span class="status-pill" style="font-size: 0.7rem;">
+                                Cluster {{ p.cluster_label }}
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if p.is_anomaly == 1 %}
+                            <span class="priority-indicator priority-high"><span class="priority-dot"></span> Outlier</span>
+                        {% else %}
+                            <span class="priority-indicator priority-low"><span class="priority-dot"></span> Normative</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right;">
+                        <div style="display: inline-flex; gap: 0.35rem;">
+                            <a href="{{ url_for('patient_detail', patient_id=p.patient_id) }}" class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.55rem;">
+                                Profile
+                            </a>
+                            <a href="{{ url_for('patient_recommendations', patient_id=p.patient_id) }}" class="btn btn-teal btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.55rem;">
+                                Next Steps &rarr;
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="12" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+                        No patient records match the selected filter criteria.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination Footer -->
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.5rem; background: var(--bg-surface); border-top: 1px solid var(--border-color); flex-wrap: wrap; gap: 1rem;">
+        <div style="font-size: var(--text-xs); color: var(--text-secondary);">
+            Showing <strong style="color: var(--text-primary);">{{ ((current_page - 1) * per_page) + 1 if total_count > 0 else 0 }}</strong> to <strong style="color: var(--text-primary);">{{ [current_page * per_page, total_count]|min }}</strong> of <strong style="color: var(--text-primary);">{{ total_count }}</strong> cohort patients
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            {% if current_page > 1 %}
+                <a href="{{ url_for('patients', page=current_page-1, per_page=per_page, search=search_query, anomaly=filter_anomaly, cluster=filter_cluster) }}" class="btn btn-secondary btn-sm" style="font-size: 0.8rem;">
+                    &larr; Previous
+                </a>
+            {% else %}
+                <span class="btn btn-secondary btn-sm" style="opacity: 0.4; pointer-events: none; font-size: 0.8rem;">&larr; Previous</span>
+            {% endif %}
+
+            <span style="font-size: var(--text-xs); font-weight: 600; color: var(--text-secondary); padding: 0 0.5rem;">
+                Page {{ current_page }} of {{ total_pages }}
+            </span>
+
+            {% if current_page < total_pages %}
+                <a href="{{ url_for('patients', page=current_page+1, per_page=per_page, search=search_query, anomaly=filter_anomaly, cluster=filter_cluster) }}" class="btn btn-secondary btn-sm" style="font-size: 0.8rem;">
+                    Next &rarr;
+                </a>
+            {% else %}
+                <span class="btn btn-secondary btn-sm" style="opacity: 0.4; pointer-events: none; font-size: 0.8rem;">Next &rarr;</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

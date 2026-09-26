@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+
+{% block title %}Patient Profile: {{ patient.patient_id }} | RARETRACE{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-header-text">
+        <div style="display: flex; align-items: center; gap: 0.65rem;">
+            <h2>Patient Profile: {{ patient.patient_id }}</h2>
+            {% if patient.is_anomaly == 1 %}
+                <span class="status-pill" style="background: var(--status-danger-bg); color: var(--status-danger); border-color: var(--status-danger-border);">
+                    <span class="priority-dot" style="background: var(--status-danger);"></span> Candidate Rare Case
+                </span>
+            {% else %}
+                <span class="status-pill">
+                    <span class="priority-dot" style="background: var(--secondary-teal);"></span> Normative Cohort
+                </span>
+            {% endif %}
+        </div>
+        <p>Statistical review dossier &bull; Dataset: <strong>{{ active_dataset.dataset_name }}</strong> &bull; Provenance ID: <code>{{ patient.run_id or 'Run 1' }}</code></p>
+    </div>
+    <div class="page-actions">
+        <a href="{{ url_for('patient_recommendations', patient_id=patient.patient_id) }}" class="btn btn-teal">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+            <span>Clinical Recommendations &rarr;</span>
+        </a>
+        <a href="{{ url_for('export_patient_pdf', patient_id=patient.patient_id) }}" class="btn btn-secondary">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            <span>Download Audit PDF</span>
+        </a>
+        <a href="{{ url_for('patients') }}" class="btn btn-secondary">&larr; Patient List</a>
+    </div>
+</div>
+
+<!-- ANOMALY SUMMARY ROW (Compact Scientific Cards) -->
+<div class="kpi-row" style="margin-bottom: 1.5rem;">
+    <div class="kpi-card {% if patient.is_anomaly == 1 %}kpi-danger{% else %}kpi-teal{% endif %}">
+        <div class="kpi-header">
+            <span class="kpi-label">DBSCAN Spatial Status</span>
+            <div class="kpi-icon-wrap">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            </div>
+        </div>
+        <div class="kpi-value" style="font-size: 1.6rem; color: {% if patient.is_anomaly == 1 %}var(--status-danger){% else %}var(--secondary-teal){% endif %};">
+            {% if patient.cluster_label == -1 %}
+                Noise Outlier (-1)
+            {% else %}
+                Cluster {{ patient.cluster_label }}
+            {% endif %}
+        </div>
+        <div class="kpi-desc">
+            {% if patient.is_anomaly == 1 %}Low-density non-convex isolation{% else %}Normative core point density{% endif %}
+        </div>
+    </div>
+
+    <div class="kpi-card kpi-primary">
+        <div class="kpi-header">
+            <span class="kpi-label">Continuous Anomaly Score</span>
+            <div class="kpi-icon-wrap">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+            </div>
+        </div>
+        <div class="kpi-value">
+            {{ patient.anomaly_score }} <span style="font-size: var(--text-sm); color: var(--text-muted); font-weight: 500;">/ 100</span>
+        </div>
+        <div class="kpi-desc">Multi-dimensional Euclidean distance</div>
+    </div>
+
+    <div class="kpi-card {% if 'High' in patient.review_priority %}kpi-danger{% elif 'Medium' in patient.review_priority %}kpi-warning{% else %}kpi-teal{% endif %}">
+        <div class="kpi-header">
+            <span class="kpi-label">Review Priority</span>
+            {% if 'High' in patient.review_priority %}
+                <span class="priority-indicator priority-high"><span class="priority-dot"></span> Critical</span>
+            {% elif 'Medium' in patient.review_priority %}
+                <span class="priority-indicator priority-medium"><span class="priority-dot"></span> Moderate</span>
+            {% else %}
+                <span class="priority-indicator priority-low"><span class="priority-dot"></span> Low</span>
+            {% endif %}
+        </div>
+        <div class="kpi-value" style="font-size: 1.6rem; color: {% if 'High' in patient.review_priority %}var(--status-danger){% elif 'Medium' in patient.review_priority %}var(--status-warning){% else %}var(--secondary-teal){% endif %};">
+            {{ patient.review_priority }}
+        </div>
+        <div class="kpi-desc">Specialist clinical triage level</div>
+    </div>
+</div>
+
+<!-- WHY THIS PROFILE WAS FLAGGED (Prominent Explanation Section) -->
+<div class="card" style="margin-bottom: 1.5rem; border-left: 4px solid var(--secondary-teal); background: #FCFDFD;">
+    <div class="card-header" style="margin-bottom: 0.5rem; padding-bottom: 0.5rem;">
+        <div class="card-title">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--secondary-teal);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span>Why this profile was flagged</span>
+        </div>
+        <span class="status-pill" style="font-size: 0.72rem;">Model Explainability</span>
+    </div>
+
+    <p style="font-size: var(--text-md); color: var(--text-primary); line-height: 1.6; margin-bottom: 0.75rem;">
+        {% if patient.is_anomaly == 1 %}
+            This profile was classified as <strong>DBSCAN noise (Cluster -1)</strong> because its standardized feature pattern differs substantially from the dense normative clinical cohorts in multi-dimensional space.
+        {% else %}
+            This profile falls within a high-density cluster (Cluster {{ patient.cluster_label }}), indicating biomarker patterns consistent with the cohort majority.
+        {% endif %}
+    </p>
+
+    {% if patient.interpretation %}
+    <div style="background: var(--bg-subtle); padding: 0.85rem 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); font-size: var(--text-sm); color: var(--text-secondary); margin-bottom: 0.75rem;">
+        <strong>Key Statistical Signals:</strong> {{ patient.interpretation }}
+    </div>
+    {% endif %}
+
+    {% if patient.key_abnormal_features %}
+    <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
+        <span style="font-size: var(--text-xs); font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Driving Deviations:</span>
+        {% for feat in patient.key_abnormal_features.split(',') %}
+            <span class="status-pill" style="background: var(--status-danger-bg); color: var(--status-danger); border-color: var(--status-danger-border); font-size: 0.75rem;">
+                {{ feat.strip() }}
+            </span>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- FEATURE DEVIATIONS & CLINICAL BIOMETRICS GRID -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+    <!-- Horizontal Bar Chart: Feature Deviations -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <div class="card-title">Feature Deviations (|Z-Score| &ge; 1.7)</div>
+                <div class="card-subtitle">Biomarker divergence relative to normative cohort baseline</div>
+            </div>
+            <span class="status-pill" style="font-size: 0.7rem;">Z-Score Shift</span>
+        </div>
+
+        <div style="height: 280px; position: relative;">
+            <canvas id="deviationBarChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Clinical Profile: Structured Information Grid -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <div class="card-title">Clinical Profile &amp; Demographics</div>
+                <div class="card-subtitle">Structured laboratory, demographic, and cohort metadata</div>
+            </div>
+            <span class="status-pill" style="font-size: 0.7rem;">Patient Data</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem;">
+            <div style="background: var(--bg-subtle); padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+                <div style="font-size: var(--text-xs); font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Patient ID</div>
+                <div style="font-size: var(--text-md); font-weight: 700; color: var(--primary-navy); margin-top: 0.2rem; font-family: var(--font-mono);">
+                    {{ patient.patient_id }}
+                </div>
+            </div>
+
+            {% for item in demographic_fields %}
+                {% if item.name != 'Patient Id' and item.value %}
+                <div style="background: var(--bg-subtle); padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+                    <div style="font-size: var(--text-xs); font-weight: 700; color: var(--text-muted); text-transform: uppercase;">{{ item.name }}</div>
+                    <div style="font-size: var(--text-md); font-weight: 600; color: var(--text-primary); margin-top: 0.2rem;">
+                        {{ item.value }}
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: var(--text-xs); color: var(--text-muted);">
+                Need actionable next steps?
+            </span>
+            <a href="{{ url_for('patient_recommendations', patient_id=patient.patient_id) }}" class="btn btn-teal btn-sm">
+                View 6-Category Recommendations &rarr;
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Statistical Comparison Table -->
+<div class="card">
+    <div class="card-header">
+        <div>
+            <div class="card-title">Statistical Feature Comparison vs. Normative Cohort</div>
+            <div class="card-subtitle">Exact observed measurement, reference mean, absolute difference, and standardized Z-score</div>
+        </div>
+    </div>
+
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Feature</th>
+                    <th>Patient Value</th>
+                    <th>Population Mean</th>
+                    <th>Difference (&Delta;)</th>
+                    <th>Z-Score</th>
+                    <th style="text-align: right;">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in comparison_table %}
+                <tr {% if row.is_abnormal %}style="background: #FEF2F2;"{% endif %}>
+                    <td><strong>{{ row.feature }}</strong></td>
+                    <td><strong style="font-family: var(--font-mono);">{{ row.patient_val }}</strong></td>
+                    <td style="font-family: var(--font-mono); color: var(--text-secondary);">{{ row.pop_mean }}</td>
+                    <td style="font-family: var(--font-mono); color: {% if row.is_abnormal %}var(--status-danger); font-weight: 700;{% else %}var(--text-secondary);{% endif %}">
+                        {{ row.difference }}
+                    </td>
+                    <td>
+                        <strong style="font-family: var(--font-mono); color: {% if row.is_abnormal %}var(--status-danger){% else %}var(--text-primary){% endif %};">
+                            {{ row.z_score }}
+                        </strong>
+                    </td>
+                    <td style="text-align: right;">
+                        {% if row.is_abnormal %}
+                            <span class="priority-indicator priority-high"><span class="priority-dot"></span> Significant Shift</span>
+                        {% else %}
+                            <span class="priority-indicator priority-low"><span class="priority-dot"></span> Normative</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                        No numerical features available for population comparison.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Comparison Table Data for Horizontal Deviation Bar Chart
+    const compTable = {{ comparison_table|tojson }};
+
+    document.addEventListener("DOMContentLoaded", function() {
+        if (!compTable || compTable.length === 0) return;
+
+        // Sort by absolute Z-score descending and take top 8 features
+        const sorted = [...compTable].sort((a, b) => Math.abs(b.z_score) - Math.abs(a.z_score)).slice(0, 8);
+        const labels = sorted.map(d => d.feature);
+        const zScores = sorted.map(d => d.z_score);
+        const bgColors = sorted.map(d => {
+            const z = Math.abs(d.z_score);
+            if (z >= 3.0) return 'rgba(220, 38, 38, 0.85)';
+            if (z >= 1.7) return 'rgba(217, 119, 6, 0.85)';
+            return 'rgba(15, 118, 110, 0.7)';
+        });
+
+        const ctx = document.getElementById("deviationBarChart").getContext("2d");
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Standardized Z-Score',
+                    data: zScores,
+                    backgroundColor: bgColors,
+                    borderWidth: 1,
+                    borderColor: '#CBD5E1',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                indexAxis: 'y', // Horizontal bars
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#0B1F33',
+                        callbacks: {
+                            label: function(item) {
+                                const row = sorted[item.dataIndex];
+                                return [
+                                    `Z-Score: ${row.z_score}`,
+                                    `Patient Value: ${row.patient_val}`,
+                                    `Cohort Mean: ${row.pop_mean}`,
+                                    `Difference: ${row.difference}`
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: '#EEF2F6' },
+                        title: { display: true, text: 'Z-Score (Standard Deviations from Mean)', font: { family: 'Inter', size: 11 } }
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: { font: { family: 'Inter', size: 11, weight: '500' } }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

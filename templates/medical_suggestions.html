@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}Medical Suggestions &amp; Specialist Recommendations | RARETRACE{% endblock %}
+
+{% block content %}
+<div class="page-header" style="margin-bottom: 1.5rem;">
+    <div>
+        <h2>Medical Suggestions &amp; Specialist Recommendations</h2>
+        <p>Statistical Anomaly Attribution &bull; Hierarchical Specialist Guidance &bull; Non-Prescriptive Clinical Decision Support</p>
+    </div>
+    <div style="display: flex; gap: 0.75rem;">
+        <a href="{{ url_for('export_clinical_suggestions_csv') }}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            Export Suggestions (CSV)
+        </a>
+        <a href="{{ url_for('export_pdf_report') }}" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            Clinical Report (PDF)
+        </a>
+    </div>
+</div>
+
+<!-- Emergency Medical Safety Notice Banner -->
+<div class="disclaimer-banner" style="background: #fff1f2; border: 1px solid #fecdd3; color: #9f1239; margin-bottom: 1.25rem;">
+    <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink: 0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+    <div>
+        <strong>EMERGENCY VITAL SIGNS NOTICE:</strong>
+        URGENT CLINICAL REVIEW MAY BE APPROPRIATE. If the patient has severe, sudden, or worsening symptoms, seek immediate medical attention or contact local emergency services rather than relying on this application.
+    </div>
+</div>
+
+<!-- Academic Decision Support Disclaimer -->
+<div class="disclaimer-banner" style="background: #fffbeb; border: 1px solid #fef3c7; color: #92400e; margin-bottom: 1.75rem;">
+    <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink: 0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+    <div>
+        <strong>CLINICAL DECISION-SUPPORT NOTICE:</strong>
+        RARETRACE is an academic healthcare machine-learning prototype. Suggestions presented below are derived from unsupervised DBSCAN anomaly clustering and statistical feature deviations. This system does <strong>NOT</strong> autonomously diagnose conditions, prescribe medications, or mandate surgical interventions. All decisions must be validated by qualified healthcare professionals.
+    </div>
+</div>
+
+<!-- Metric Overview Cards -->
+<div class="kpi-grid" style="margin-bottom: 2rem;">
+    <div class="kpi-card" style="border-top: 4px solid #0284c7;">
+        <div class="kpi-label">Cohort Cases Evaluated</div>
+        <div class="kpi-value">{{ summary.total_reviewed }}</div>
+        <div class="kpi-subtext">Partitioned to {{ active_dataset.dataset_name if active_dataset else 'Active Dataset' }}</div>
+    </div>
+
+    <div class="kpi-card" style="border-top: 4px solid #e11d48;">
+        <div class="kpi-label">High Priority Reviews</div>
+        <div class="kpi-value" style="color: #e11d48;">{{ summary.high_priority_count }}</div>
+        <div class="kpi-subtext">Warrant prompt multidisciplinary clinical review</div>
+    </div>
+
+    <div class="kpi-card" style="border-top: 4px solid #8b5cf6;">
+        <div class="kpi-label">Multi-System Alerts</div>
+        <div class="kpi-value" style="color: #8b5cf6;">{{ summary.multi_system_count }}</div>
+        <div class="kpi-subtext">Route to General Physician / Internal Medicine</div>
+    </div>
+
+    <div class="kpi-card" style="border-top: 4px solid #d97706;">
+        <div class="kpi-label">Moderate Reviews</div>
+        <div class="kpi-value" style="color: #d97706;">{{ summary.medium_priority_count }}</div>
+        <div class="kpi-subtext">Targeted single or dual organ-domain deviations</div>
+    </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="card" style="margin-bottom: 2rem; padding: 1.25rem 1.5rem;">
+    <form method="GET" action="{{ url_for('medical_suggestions_page') }}" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 200px;">
+            <label style="display: block; font-size: 0.78rem; font-weight: 700; color: #475569; margin-bottom: 0.35rem; text-transform: uppercase;">Search Patient ID</label>
+            <input type="text" name="search" value="{{ current_search }}" placeholder="Filter by patient ID (e.g. PAT-1001)..." class="form-control" style="width: 100%;">
+        </div>
+
+        <div style="width: 180px;">
+            <label style="display: block; font-size: 0.78rem; font-weight: 700; color: #475569; margin-bottom: 0.35rem; text-transform: uppercase;">Clinical Priority</label>
+            <select name="priority" class="form-control" style="width: 100%;">
+                <option value="ALL" {% if current_priority == 'ALL' %}selected{% endif %}>All Priorities</option>
+                <option value="HIGH" {% if current_priority == 'HIGH' %}selected{% endif %}>High Priority Only</option>
+                <option value="MEDIUM" {% if current_priority == 'MEDIUM' %}selected{% endif %}>Medium Priority</option>
+                <option value="LOW" {% if current_priority == 'LOW' %}selected{% endif %}>Low Priority</option>
+            </select>
+        </div>
+
+        <div style="width: 200px;">
+            <label style="display: block; font-size: 0.78rem; font-weight: 700; color: #475569; margin-bottom: 0.35rem; text-transform: uppercase;">Clinical Domain</label>
+            <select name="domain" class="form-control" style="width: 100%;">
+                <option value="ALL" {% if current_domain == 'ALL' %}selected{% endif %}>All Domains</option>
+                <option value="RENAL" {% if current_domain == 'RENAL' %}selected{% endif %}>Renal / Kidney</option>
+                <option value="CARDIOVASCULAR" {% if current_domain == 'CARDIOVASCULAR' %}selected{% endif %}>Cardiovascular</option>
+                <option value="HEMATOLOGICAL" {% if current_domain == 'HEMATOLOGICAL' %}selected{% endif %}>Hematological / Blood</option>
+                <option value="METABOLIC" {% if current_domain == 'METABOLIC' %}selected{% endif %}>Metabolic / Endocrine</option>
+                <option value="RESPIRATORY" {% if current_domain == 'RESPIRATORY' %}selected{% endif %}>Respiratory / Vitals</option>
+                <option value="GENERAL" {% if current_domain == 'GENERAL' %}selected{% endif %}>General / Systemic</option>
+            </select>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem;">
+            <button type="submit" class="btn btn-primary" style="height: 40px; display: inline-flex; align-items: center; gap: 0.4rem;">
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                Filter Cohort
+            </button>
+            <a href="{{ url_for('medical_suggestions_page') }}" class="btn btn-secondary" style="height: 40px; display: inline-flex; align-items: center;">Reset</a>
+        </div>
+    </form>
+</div>
+
+<!-- Suggestions Cohort Table -->
+<div class="card" style="padding: 0; overflow: hidden;">
+    <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #fafbfc;">
+        <div>
+            <h3 style="font-size: 1.1rem; font-weight: 700; color: #0f172a; margin: 0;">Patient Medical Dossiers ({{ suggestions|length }} Cases)</h3>
+            <span style="font-size: 0.82rem; color: #64748b;">Ranked by review urgency &bull; Hierarchical specialist routing &bull; Isolated to active dataset</span>
+        </div>
+    </div>
+
+    {% if suggestions %}
+    <div class="table-container" style="margin: 0; border: none; border-radius: 0;">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th style="width: 13%;">Patient ID</th>
+                    <th style="width: 12%;">Priority</th>
+                    <th style="width: 18%;">Involved Domains</th>
+                    <th style="width: 25%;">Primary Signals Detected</th>
+                    <th style="width: 20%;">Recommended Specialist</th>
+                    <th style="width: 12%; text-align: center;">Medical Dossier</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in suggestions %}
+                <tr style="{% if s.clinical_priority == 'HIGH' %}background: #fff8f8;{% endif %}">
+                    <td>
+                        <strong style="color: #0f172a;">{{ s.patient_id }}</strong>
+                        {% if s.multi_system_signal == 1 %}
+                            <div style="margin-top: 0.2rem;"><span class="badge" style="background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; font-size: 0.68rem;">Multi-System</span></div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if s.clinical_priority == 'HIGH' %}
+                            <span class="badge badge-high">High Priority</span>
+                        {% elif s.clinical_priority == 'MEDIUM' %}
+                            <span class="badge badge-med">Medium Priority</span>
+                        {% else %}
+                            <span class="badge badge-low">Low Priority</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 0.3rem; flex-wrap: wrap;">
+                            {% for d in s.all_domains %}
+                                <span class="badge badge-cluster" style="font-size: 0.7rem;">{{ d }}</span>
+                            {% endfor %}
+                            {% if not s.all_domains %}
+                                <span class="badge badge-normal" style="font-size: 0.7rem;">General</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        {% if s.key_signals %}
+                            <div style="font-size: 0.82rem; color: #334155; font-weight: 500;">
+                                {{ s.key_signals[0].title if s.key_signals[0] is mapping else s.key_signals[0] }}
+                            </div>
+                            {% if s.z_score_drivers %}
+                                <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.15rem;">
+                                    {{ s.z_score_drivers[0].feature_label }}: Z={{ s.z_score_drivers[0].z_score }}
+                                    {% if s.z_score_drivers|length > 1 %}
+                                        (+{{ s.z_score_drivers|length - 1 }} more)
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <span style="color: #94a3b8; font-size: 0.82rem;">Expected variation</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if s.multi_system_signal == 1 %}
+                            <div style="font-size: 0.82rem; font-weight: 700; color: #581c87;">
+                                General Physician
+                            </div>
+                            <div style="font-size: 0.72rem; color: #6b21a8;">
+                                Internal Medicine Coordinator
+                            </div>
+                        {% elif s.specialist_referrals %}
+                            <div style="font-size: 0.82rem; font-weight: 600; color: #0369a1;">
+                                {{ s.specialist_referrals[0].specialty if s.specialist_referrals[0] is mapping else s.specialist_referrals[0] }}
+                            </div>
+                        {% else %}
+                            <span style="font-size: 0.82rem; color: #64748b;">Primary Care Physician</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: center;">
+                        <a href="{{ url_for('patient_medical_suggestions', dataset_id=s.dataset_id, patient_id=s.patient_id) }}" class="btn btn-primary" style="padding: 0.35rem 0.75rem; font-size: 0.78rem;">
+                            View Dossier &rarr;
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="padding: 3rem; text-align: center;">
+        <svg width="48" height="48" fill="none" stroke="#94a3b8" viewBox="0 0 24 24" style="margin: 0 auto 1rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+        <h4 style="color: #334155; margin-bottom: 0.5rem;">No medical suggestions found matching criteria</h4>
+        <p style="color: #64748b; font-size: 0.88rem; max-width: 450px; margin: 0 auto 1.5rem;">
+            Try clearing search or filters, or execute ML pipeline for the active dataset to populate suggestions.
+        </p>
+        <a href="{{ url_for('medical_suggestions_page') }}" class="btn btn-secondary">Clear Filters</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

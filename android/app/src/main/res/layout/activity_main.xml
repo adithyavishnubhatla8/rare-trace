@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0b1120">
+
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipeRefreshLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <WebView
+            android:id="@+id/webView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#0b1120" />
+
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+    <!-- Top Loading Progress Bar -->
+    <ProgressBar
+        android:id="@+id/topProgressBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:layout_alignParentTop="true"
+        android:indeterminate="false"
+        android:max="100"
+        android:progressDrawable="@android:drawable/progress_horizontal"
+        android:visibility="gone" />
+
+    <!-- Center Initial Loading Spinner -->
+    <ProgressBar
+        android:id="@+id/centerSpinner"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_centerInParent="true"
+        android:indeterminate="true"
+        android:visibility="gone" />
+
+    <!-- Connection Error / Server Config Overlay -->
+    <LinearLayout
+        android:id="@+id/errorContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="32dp"
+        android:background="#0b1120"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:src="@mipmap/ic_launcher"
+            android:contentDescription="RARETRACE Logo"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="RARETRACE"
+            android:textColor="#38bdf8"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/errorText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cannot connect to Flask server.\nPlease verify the server is running."
+            android:textAlignment="center"
+            android:textColor="#94a3b8"
+            android:textSize="14sp"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:id="@+id/currentServerUrlText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Server: http://10.0.2.2:5000"
+            android:textColor="#64748b"
+            android:textSize="12sp"
+            android:layout_marginBottom="24dp" />
+
+        <Button
+            android:id="@+id/retryButton"
+            android:layout_width="220dp"
+            android:layout_height="48dp"
+            android:text="Retry Connection"
+            android:textAllCaps="false"
+            android:textStyle="bold"
+            android:backgroundTint="#0284c7"
+            android:textColor="#ffffff"
+            android:layout_marginBottom="12dp" />
+
+        <Button
+            android:id="@+id/configureServerButton"
+            android:layout_width="220dp"
+            android:layout_height="48dp"
+            android:text="Configure Server IP"
+            android:textAllCaps="false"
+            android:backgroundTint="#1e293b"
+            android:textColor="#38bdf8" />
+
+    </LinearLayout>
+
+</RelativeLayout>

@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+.env
+
+# Environments
+env/
+venv/
+.venv/
+ENV/
+
+# Vercel
+.vercel/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Android build outputs & APKs
+*.apk
+*.aab
+android/.gradle/
+android/app/build/
+android/build/
+.gradle/
+local.properties
+
+# Ephemeral runtime outputs
+outputs/
+saved_models/
+*.log
+scratch/

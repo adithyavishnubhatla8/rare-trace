@@ -1,0 +1,382 @@
+{% extends "base.html" %}
+
+{% block title %}Clinical Intelligence Dashboard | RARETRACE{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-header-text">
+        <h2>Clinical Analytics Dashboard</h2>
+        <p>Unsupervised detection of statistically unusual clinical profiles via DBSCAN density analysis.</p>
+    </div>
+    <div class="page-actions">
+        <!-- Dataset Selector -->
+        {% if all_datasets %}
+        <select class="btn btn-secondary btn-sm" onchange="if(this.value) window.location.href='{{ url_for('switch_dataset', dataset_id='') }}' + this.value;" style="font-size: var(--text-xs); font-weight: 600; padding: 0.45rem 0.75rem;">
+            {% for d in all_datasets %}
+                <option value="{{ d.dataset_id }}" {% if active_dataset and d.dataset_id == active_dataset.dataset_id %}selected{% endif %}>
+                    Cohort: {{ d.dataset_name }}
+                </option>
+            {% endfor %}
+        </select>
+        {% endif %}
+
+        <a href="{{ url_for('reports_hub') }}" class="btn btn-secondary btn-sm">
+            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            <span>Reports &amp; Exports</span>
+        </a>
+        <a href="{{ url_for('export_pdf_report') }}" class="btn btn-primary btn-sm">
+            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            <span>Download Executive PDF</span>
+        </a>
+    </div>
+</div>
+
+<!-- Compact Scientific KPI Row -->
+<div class="kpi-row">
+    <!-- Patients Analysed -->
+    <div class="kpi-card kpi-primary">
+        <div class="kpi-header">
+            <span class="kpi-label">Patients Analysed</span>
+            <div class="kpi-icon-wrap">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+            </div>
+        </div>
+        <div class="kpi-value">{{ total_patients }}</div>
+        <div class="kpi-desc">Cohort records evaluated</div>
+    </div>
+
+    <!-- Anomaly Candidates -->
+    <div class="kpi-card kpi-danger">
+        <div class="kpi-header">
+            <span class="kpi-label">Anomaly Candidates</span>
+            <div class="kpi-icon-wrap" style="color: var(--status-danger);">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            </div>
+        </div>
+        <div class="kpi-value" style="color: var(--status-danger);">{{ candidate_cases }}</div>
+        <div class="kpi-desc">DBSCAN noise outliers flagged</div>
+    </div>
+
+    <!-- Clusters Detected -->
+    <div class="kpi-card kpi-teal">
+        <div class="kpi-header">
+            <span class="kpi-label">Clusters Detected</span>
+            <div class="kpi-icon-wrap" style="color: var(--secondary-teal);">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+            </div>
+        </div>
+        <div class="kpi-value" style="color: var(--secondary-teal);">{{ n_clusters }}</div>
+        <div class="kpi-desc">Dense normative patterns</div>
+    </div>
+
+    <!-- Noise Rate -->
+    <div class="kpi-card kpi-warning">
+        <div class="kpi-header">
+            <span class="kpi-label">Noise Rate</span>
+            <div class="kpi-icon-wrap" style="color: var(--status-warning);">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+            </div>
+        </div>
+        <div class="kpi-value" style="color: var(--status-warning);">{{ anomaly_pct }}%</div>
+        <div class="kpi-desc">Statistical outlier prevalence</div>
+    </div>
+</div>
+
+<!-- Primary Visualization: Clinical Cohort Distribution (PCA Scatter) -->
+<div class="card" style="margin-bottom: 1.5rem;">
+    <div class="card-header">
+        <div>
+            <div class="card-title">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--secondary-teal);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path></svg>
+                <span>Clinical Cohort Distribution (2D PCA Projection)</span>
+            </div>
+            <div class="card-subtitle">
+                Interactive spatial density map: normative clusters shown as circles, candidate rare cases (DBSCAN noise) marked as red outliers.
+            </div>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <span class="priority-indicator priority-high" style="font-size: 0.75rem;"><span class="priority-dot"></span> Noise (Rare Outliers)</span>
+            <span class="priority-indicator priority-low" style="font-size: 0.75rem; margin-left: 0.75rem;"><span class="priority-dot"></span> Dense Clusters</span>
+        </div>
+    </div>
+
+    <!-- PCA Scatter Canvas -->
+    <div style="position: relative; height: 380px; width: 100%;">
+        <canvas id="pcaScatterChart"></canvas>
+    </div>
+</div>
+
+<!-- Secondary Charts Row: Anomaly Score Distribution + Review Priority -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+    <!-- Anomaly Score Distribution -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <div class="card-title">Anomaly Score Distribution</div>
+                <div class="card-subtitle">Frequency of continuous Euclidean anomaly scores across cohort</div>
+            </div>
+            <span class="status-pill" style="font-size: 0.7rem;">0–100 Scale</span>
+        </div>
+        <div style="height: 240px; position: relative;">
+            <canvas id="scoreDistChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Review Priority Breakdown -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <div class="card-title">Clinical Review Priority</div>
+                <div class="card-subtitle">Triage tier allocation based on statistical severity</div>
+            </div>
+            <span class="status-pill" style="font-size: 0.7rem;">Priority Stratification</span>
+        </div>
+        <div style="height: 240px; position: relative;">
+            <canvas id="priorityChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Candidate Rare Cases Table -->
+<div class="card">
+    <div class="card-header">
+        <div>
+            <div class="card-title">
+                <span>Top Candidate Rare-Disease Cases</span>
+            </div>
+            <div class="card-subtitle">
+                Highest-scoring spatial outliers flagged for specialist clinical review
+            </div>
+        </div>
+        <a href="{{ url_for('anomalies') }}" class="btn btn-secondary btn-sm">
+            <span>View All Anomalies &rarr;</span>
+        </a>
+    </div>
+
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Patient ID</th>
+                    <th>Cluster Assignment</th>
+                    <th>Anomaly Score</th>
+                    <th>Review Priority</th>
+                    <th>Status</th>
+                    <th style="text-align: right;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in top_anomalies %}
+                <tr>
+                    <td>
+                        <strong style="font-family: var(--font-mono); color: var(--primary-navy);">{{ p.patient_id }}</strong>
+                    </td>
+                    <td>
+                        <span class="status-pill" style="background: var(--status-danger-bg); color: var(--status-danger); border-color: var(--status-danger-border);">
+                            Noise (Cluster -1)
+                        </span>
+                    </td>
+                    <td>
+                        <span style="font-family: var(--font-mono); font-weight: 700; color: var(--status-danger);">
+                            {{ p.anomaly_score }}
+                        </span>
+                        <span style="font-size: var(--text-xs); color: var(--text-muted);">/ 100</span>
+                    </td>
+                    <td>
+                        {% if p.review_priority == 'High Priority' %}
+                            <span class="priority-indicator priority-high"><span class="priority-dot"></span> High</span>
+                        {% elif p.review_priority == 'Medium Priority' %}
+                            <span class="priority-indicator priority-medium"><span class="priority-dot"></span> Medium</span>
+                        {% else %}
+                            <span class="priority-indicator priority-low"><span class="priority-dot"></span> Low</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span style="font-size: var(--text-xs); color: var(--text-secondary);">Needs Clinical Review</span>
+                    </td>
+                    <td style="text-align: right;">
+                        <div style="display: inline-flex; gap: 0.35rem;">
+                            <a href="{{ url_for('patient_detail', patient_id=p.patient_id) }}" class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.55rem;">
+                                Profile
+                            </a>
+                            <a href="{{ url_for('patient_recommendations', patient_id=p.patient_id) }}" class="btn btn-teal btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.55rem;">
+                                Next Steps &rarr;
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                        No candidate cases currently identified. Upload or select an analyzed dataset.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Data from Backend
+    const pcaData = {{ pca_scatter|tojson }};
+    const scoreBinsData = {{ score_bins|tojson }};
+    const priorityData = {{ priority_counts|tojson }};
+
+    document.addEventListener("DOMContentLoaded", function() {
+        // 1. Interactive 2D PCA Scatter Chart
+        const pcaCtx = document.getElementById("pcaScatterChart").getContext("2d");
+        
+        // Split data into clusters and noise
+        const noisePoints = pcaData.filter(p => p.is_anomaly === 1 || p.cluster === -1);
+        const clusterPoints = pcaData.filter(p => p.is_anomaly === 0 && p.cluster !== -1);
+
+        new Chart(pcaCtx, {
+            type: 'scatter',
+            data: {
+                datasets: [
+                    {
+                        label: 'Candidate Rare Cases (DBSCAN Noise)',
+                        data: noisePoints.map(p => ({ x: p.x, y: p.y, patient_id: p.patient_id, score: p.score, cluster: p.cluster })),
+                        backgroundColor: 'rgba(220, 38, 38, 0.85)',
+                        borderColor: '#DC2626',
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        pointStyle: 'crossRot',
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Normative Clinical Cohort (Clusters)',
+                        data: clusterPoints.map(p => ({ x: p.x, y: p.y, patient_id: p.patient_id, score: p.score, cluster: p.cluster })),
+                        backgroundColor: 'rgba(15, 118, 110, 0.55)',
+                        borderColor: '#0F766E',
+                        pointRadius: 4.5,
+                        pointHoverRadius: 6.5,
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: { family: 'Inter', size: 12, weight: '600' },
+                            color: '#102A43',
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#0B1F33',
+                        titleFont: { family: 'Inter', size: 13, weight: 'bold' },
+                        bodyFont: { family: 'Inter', size: 12 },
+                        padding: 10,
+                        cornerRadius: 6,
+                        callbacks: {
+                            title: function(items) {
+                                const raw = items[0].raw;
+                                return `Patient: ${raw.patient_id}`;
+                            },
+                            label: function(item) {
+                                const raw = item.raw;
+                                return [
+                                    `Cluster: ${raw.cluster === -1 ? 'Noise (-1)' : 'Cluster ' + raw.cluster}`,
+                                    `Anomaly Score: ${raw.score} / 100`,
+                                    `PCA: (${raw.x}, ${raw.y})`
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: '#EEF2F6' },
+                        title: { display: true, text: 'Principal Component 1 (PC1)', font: { family: 'Inter', size: 11, weight: '600' }, color: '#627D98' }
+                    },
+                    y: {
+                        grid: { color: '#EEF2F6' },
+                        title: { display: true, text: 'Principal Component 2 (PC2)', font: { family: 'Inter', size: 11, weight: '600' }, color: '#627D98' }
+                    }
+                }
+            }
+        });
+
+        // 2. Anomaly Score Distribution Histogram
+        const scoreCtx = document.getElementById("scoreDistChart").getContext("2d");
+        new Chart(scoreCtx, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(scoreBinsData),
+                datasets: [{
+                    label: 'Patients',
+                    data: Object.values(scoreBinsData),
+                    backgroundColor: [
+                        'rgba(15, 118, 110, 0.65)',
+                        'rgba(15, 118, 110, 0.75)',
+                        'rgba(217, 119, 6, 0.75)',
+                        'rgba(220, 38, 38, 0.75)',
+                        'rgba(220, 38, 38, 0.95)'
+                    ],
+                    borderColor: '#CBD5E1',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#0B1F33',
+                        callbacks: {
+                            title: function(items) { return `Score Range: ${items[0].label}`; }
+                        }
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 11 } } },
+                    y: { grid: { color: '#EEF2F6' }, ticks: { precision: 0, font: { family: 'Inter', size: 11 } } }
+                }
+            }
+        });
+
+        // 3. Clinical Review Priority Breakdown Chart
+        const priorityCtx = document.getElementById("priorityChart").getContext("2d");
+        new Chart(priorityCtx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(priorityData),
+                datasets: [{
+                    data: Object.values(priorityData),
+                    backgroundColor: [
+                        '#DC2626', // High
+                        '#D97706', // Medium
+                        '#0F766E', // Low
+                        '#CBD5E1'  // Normative
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#FFFFFF'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: { font: { family: 'Inter', size: 11 }, boxWidth: 12 }
+                    },
+                    tooltip: { backgroundColor: '#0B1F33' }
+                },
+                cutout: '68%'
+            }
+        });
+    });
+</script>
+{% endblock %}

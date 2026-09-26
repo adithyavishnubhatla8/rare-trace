@@ -1,0 +1,2 @@
+rootProject.name = "RARETRACE"
+include ':app'

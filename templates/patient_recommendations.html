@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+
+{% block title %}Clinical Recommendations: Patient {{ patient_id }} | RARETRACE{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-header-text">
+        <div style="display: flex; align-items: center; gap: 0.65rem;">
+            <h2>Clinical Recommendations &amp; Next Steps: {{ patient_id }}</h2>
+            <span class="status-pill" style="{% if 'URGENT' in recommendation.priority %}background: var(--status-danger-bg); color: var(--status-danger); border-color: var(--status-danger-border);{% elif 'PRIORITY' in recommendation.priority %}background: var(--status-warning-bg); color: var(--status-warning); border-color: var(--status-warning-border);{% else %}background: var(--secondary-teal-subtle); color: var(--secondary-teal); border-color: var(--secondary-teal-border);{% endif %}">
+                {{ recommendation.priority }}
+            </span>
+        </div>
+        <p>Evidence-aligned decision-support dossier &bull; Dataset: <strong>{{ active_dataset.dataset_name }}</strong> &bull; Provenance ID: <code>{{ recommendation.analysis_run_id or 'Latest Run' }}</code></p>
+    </div>
+    <div class="page-actions">
+        <a href="{{ url_for('export_patient_pdf', patient_id=patient_id) }}" class="btn btn-primary">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            <span>Download Audit PDF</span>
+        </a>
+        <a href="{{ url_for('patient_detail', patient_id=patient_id) }}" class="btn btn-secondary">
+            &larr; Patient Profile
+        </a>
+        <a href="{{ url_for('anomalies') }}" class="btn btn-secondary">
+            Candidate Cases
+        </a>
+    </div>
+</div>
+
+<!-- Compact Metric Overview Row -->
+<div class="kpi-row" style="margin-bottom: 1.5rem;">
+    <div class="kpi-card {% if 'URGENT' in recommendation.priority %}kpi-danger{% elif 'PRIORITY' in recommendation.priority %}kpi-warning{% else %}kpi-teal{% endif %}">
+        <div class="kpi-header">
+            <span class="kpi-label">Recommendation Priority</span>
+            <span class="priority-indicator {% if 'URGENT' in recommendation.priority %}priority-high{% elif 'PRIORITY' in recommendation.priority %}priority-medium{% else %}priority-low{% endif %}">
+                <span class="priority-dot"></span> Tier
+            </span>
+        </div>
+        <div class="kpi-value" style="font-size: 1.6rem; color: {% if 'URGENT' in recommendation.priority %}var(--status-danger){% elif 'PRIORITY' in recommendation.priority %}var(--status-warning){% else %}var(--secondary-teal){% endif %};">
+            {{ recommendation.priority }}
+        </div>
+        <div class="kpi-desc">{{ recommendation.priority_description }}</div>
+    </div>
+
+    <div class="kpi-card kpi-primary">
+        <div class="kpi-header">
+            <span class="kpi-label">DBSCAN Density Status</span>
+            <div class="kpi-icon-wrap">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            </div>
+        </div>
+        <div class="kpi-value" style="font-size: 1.6rem;">
+            {% if recommendation.is_anomaly == 1 %}
+                Isolated Outlier
+            {% else %}
+                Cluster {{ recommendation.cluster_label }}
+            {% endif %}
+        </div>
+        <div class="kpi-desc">Spatial Cluster: {{ recommendation.cluster_label }}</div>
+    </div>
+
+    <div class="kpi-card kpi-teal">
+        <div class="kpi-header">
+            <span class="kpi-label">Continuous Anomaly Score</span>
+            <div class="kpi-icon-wrap">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+            </div>
+        </div>
+        <div class="kpi-value" style="font-size: 1.6rem; color: var(--secondary-teal);">
+            {{ recommendation.anomaly_score }} <span style="font-size: var(--text-sm); color: var(--text-muted);">/ 100</span>
+        </div>
+        <div class="kpi-desc">Euclidean distance from core clusters</div>
+    </div>
+
+    <div class="kpi-card kpi-primary">
+        <div class="kpi-header">
+            <span class="kpi-label">Primary Specialist Referral</span>
+            <div class="kpi-icon-wrap">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+            </div>
+        </div>
+        <div class="kpi-value" style="font-size: 1.05rem; line-height: 1.3; color: var(--text-primary); margin-top: 0.6rem;">
+            {{ recommendation.category_d_specialists.primary_specialist }}
+        </div>
+        <div class="kpi-desc">Evidence-aligned clinical specialty</div>
+    </div>
+</div>
+
+<!-- SECTION: RECOMMENDED NEXT STEPS (4-Step Vertical Timeline) -->
+<div class="card" style="margin-bottom: 2rem;">
+    <div class="card-header">
+        <div>
+            <div class="card-title">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--secondary-teal);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span>Recommended Next Steps &bull; Clinical Workflow Protocol</span>
+            </div>
+            <div class="card-subtitle">
+                Systematic clinical sequence generated from statistical biomarker pattern recognition
+            </div>
+        </div>
+        <span class="status-pill" style="font-size: 0.72rem;">Decision Protocol</span>
+    </div>
+
+    <div class="timeline-vertical">
+        <!-- Step 1: Review -->
+        <div class="timeline-step">
+            <div class="timeline-line"></div>
+            <div class="timeline-marker">01</div>
+            <div class="timeline-card">
+                <div class="timeline-header">
+                    <span class="timeline-phase">Phase 1 &bull; Clinical Review</span>
+                    <span class="priority-indicator priority-high"><span class="priority-dot"></span> Initial Action</span>
+                </div>
+                <div class="timeline-title">Review Flagged Laboratory &amp; Biometric Findings</div>
+                <div class="timeline-body">
+                    {{ recommendation.category_a_what_detected.summary }}
+                    <ul style="margin-top: 0.5rem; padding-left: 1.25rem; font-size: var(--text-xs); color: var(--text-primary);">
+                        {% for f in recommendation.category_a_what_detected.findings[:3] %}
+                            <li>{{ f }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Confirm -->
+        <div class="timeline-step">
+            <div class="timeline-line"></div>
+            <div class="timeline-marker">02</div>
+            <div class="timeline-card">
+                <div class="timeline-header">
+                    <span class="timeline-phase">Phase 2 &bull; Verification</span>
+                    <span class="priority-indicator priority-medium"><span class="priority-dot"></span> Diagnostic Workup</span>
+                </div>
+                <div class="timeline-title">Consider Appropriate Confirmatory Diagnostic Investigations</div>
+                <div class="timeline-body">
+                    Perform focused secondary testing to rule out transient physiological variance and corroborate statistical outliers:
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
+                        {% for inv in recommendation.category_c_investigations[:4] %}
+                            <span class="status-pill" style="background: var(--bg-subtle); color: var(--text-primary); border-color: var(--border-strong);">
+                                {{ inv.test_name }} ({{ inv.domain }})
+                            </span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Consult -->
+        <div class="timeline-step">
+            <div class="timeline-line"></div>
+            <div class="timeline-marker">03</div>
+            <div class="timeline-card">
+                <div class="timeline-header">
+                    <span class="timeline-phase">Phase 3 &bull; Consultation</span>
+                    <span class="priority-indicator priority-low"><span class="priority-dot"></span> Specialist Routing</span>
+                </div>
+                <div class="timeline-title">Consult with Recommended Medical Specialists</div>
+                <div class="timeline-body">
+                    Primary Specialist Referral: <strong>{{ recommendation.category_d_specialists.primary_specialist }}</strong>.
+                    {% if recommendation.category_d_specialists.additional_specialists %}
+                    <span style="color: var(--text-secondary); display: block; margin-top: 0.25rem;">
+                        Multidisciplinary considerations: {{ recommendation.category_d_specialists.additional_specialists|join(', ') }}.
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4: Follow-up -->
+        <div class="timeline-step">
+            <div class="timeline-marker">04</div>
+            <div class="timeline-card">
+                <div class="timeline-header">
+                    <span class="timeline-phase">Phase 4 &bull; Longitudinal Follow-up</span>
+                    <span class="priority-indicator priority-low"><span class="priority-dot"></span> Ongoing Monitoring</span>
+                </div>
+                <div class="timeline-title">Follow the Clinician's Recommended Monitoring Plan</div>
+                <div class="timeline-body">
+                    {% for g in recommendation.category_e_risk_reduction[:2] %}
+                        <p style="margin-bottom: 0.35rem;">&bull; <strong>{{ g.topic }}:</strong> {{ g.guidance }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- DETAILED CLINICAL CATEGORY DOSSIER (Categories A through F) -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(480px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- Category A: What Was Detected? -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Category A: What Was Detected?</div>
+            <span class="status-pill" style="font-size: 0.7rem;">Domain Attribution</span>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--text-secondary); line-height: 1.6; margin-bottom: 0.75rem;">
+            {{ recommendation.category_a_what_detected.summary }}
+        </p>
+
+        {% if recommendation.category_a_what_detected.deviations %}
+        <div class="table-wrap" style="margin-top: 0.75rem; max-height: 220px; overflow-y: auto;">
+            <table class="data-table" style="font-size: var(--text-xs);">
+                <thead>
+                    <tr>
+                        <th>Biomarker</th>
+                        <th>Observed</th>
+                        <th>Cohort Mean</th>
+                        <th>Z-Score</th>
+                        <th>Severity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dev in recommendation.category_a_what_detected.deviations %}
+                    <tr>
+                        <td><strong>{{ dev.feature_label }}</strong></td>
+                        <td style="font-family: var(--font-mono);">{{ dev.patient_value }}</td>
+                        <td style="font-family: var(--font-mono); color: var(--text-muted);">{{ dev.pop_mean }}</td>
+                        <td style="font-family: var(--font-mono); font-weight: 700; color: {% if dev.severity == 'Critical' %}var(--status-danger){% else %}var(--status-warning){% endif %};">
+                            {{ dev.z_score }}
+                        </td>
+                        <td>
+                            {% if dev.severity == 'Critical' %}
+                                <span class="priority-indicator priority-high"><span class="priority-dot"></span> Critical</span>
+                            {% else %}
+                                <span class="priority-indicator priority-medium"><span class="priority-dot"></span> Significant</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Category B: Why Flagged? -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Category B: Why Flagged?</div>
+            <span class="status-pill" style="font-size: 0.7rem;">DBSCAN Isolation</span>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--text-secondary); line-height: 1.6; margin-bottom: 0.75rem;">
+            {{ recommendation.category_b_why_flagged.summary }}
+        </p>
+        <div style="background: var(--bg-subtle); padding: 0.85rem 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); margin-top: 0.5rem; font-size: var(--text-xs); color: var(--text-secondary);">
+            <strong>Matched Pattern Heuristic:</strong> {{ recommendation.category_b_why_flagged.pattern_name }}
+        </div>
+    </div>
+
+    <!-- Category C: Recommended Diagnostic Investigations -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Category C: Recommended Investigations</div>
+            <span class="status-pill" style="font-size: 0.7rem;">Evidence-Aligned</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            {% for inv in recommendation.category_c_investigations %}
+            <div style="padding: 0.75rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--bg-subtle);">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <strong style="font-size: var(--text-sm); color: var(--text-primary);">{{ inv.test_name }}</strong>
+                    <span class="status-pill" style="font-size: 0.65rem;">{{ inv.domain }}</span>
+                </div>
+                <p style="font-size: var(--text-xs); color: var(--text-secondary); margin-top: 0.35rem;">
+                    <strong>Clinical Rationale:</strong> {{ inv.rationale }}
+                </p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Category D: Suggested Specialist Referrals -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Category D: Suggested Specialists</div>
+            <span class="status-pill" style="font-size: 0.7rem;">Specialist Routing</span>
+        </div>
+        <div style="background: var(--secondary-teal-subtle); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--secondary-teal-border); margin-bottom: 0.75rem;">
+            <div style="font-size: var(--text-xs); font-weight: 700; text-transform: uppercase; color: var(--secondary-teal);">Primary Referral Target:</div>
+            <div style="font-size: var(--text-lg); font-weight: 800; color: var(--text-primary); margin-top: 0.2rem;">
+                {{ recommendation.category_d_specialists.primary_specialist }}
+            </div>
+        </div>
+        {% if recommendation.category_d_specialists.additional_specialists %}
+        <div style="font-size: var(--text-xs); color: var(--text-secondary);">
+            <strong>Multidisciplinary Care Team:</strong>
+            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.35rem;">
+                {% for spec in recommendation.category_d_specialists.additional_specialists %}
+                    <span class="status-pill" style="background: var(--bg-subtle); color: var(--text-primary); border-color: var(--border-subtle);">
+                        {{ spec }}
+                    </span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Category E: General Risk-Reduction Guidance -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Category E: General Risk Reduction</div>
+            <span class="status-pill" style="font-size: 0.7rem;">Lifestyle &amp; Safety</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            {% for g in recommendation.category_e_risk_reduction %}
+            <div style="padding: 0.75rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--bg-subtle);">
+                <strong style="font-size: var(--text-sm); color: var(--text-primary);">{{ g.topic }}</strong>
+                <p style="font-size: var(--text-xs); color: var(--text-secondary); margin-top: 0.25rem;">
+                    {{ g.guidance }}
+                </p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Category F: Possible Management Considerations -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Category F: Management Considerations</div>
+            <span class="status-pill" style="font-size: 0.7rem;">Clinical Strategy</span>
+        </div>
+        <ul style="list-style: disc; padding-left: 1.25rem; font-size: var(--text-sm); color: var(--text-secondary); line-height: 1.7;">
+            {% for m in recommendation.category_f_management_considerations %}
+                <li>{{ m }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %}

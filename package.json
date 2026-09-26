@@ -1,0 +1,25 @@
+{
+  "name": "raretrace",
+  "version": "1.0.0",
+  "description": "RARETRACE – Rare-Disease Case Identification Using DBSCAN-Based Anomaly Detection",
+  "scripts": {
+    "dev": "python app.py",
+    "start": "python app.py",
+    "build": "echo RARETRACE build completed"
+  },
+  "keywords": [
+    "dbscan",
+    "anomaly-detection",
+    "rare-disease",
+    "machine-learning",
+    "clinical-decision-support"
+  ],
+  "author": "Adithya Vishnubhatla & Pavan Kumar",
+  "license": "MIT",
+  "devDependencies": {
+    "vercel": "^39.0.0"
+  },
+  "dependencies": {
+    "@supabase/server": "^1.8.0"
+  }
+}

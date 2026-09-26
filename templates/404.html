@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}404 Record Not Found | RARETRACE{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 580px; margin: 3rem auto; text-align: center; padding: 3rem 2rem;">
+    <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--status-danger-bg); color: var(--status-danger); display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; border: 1px solid var(--status-danger-border);">
+        <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+    </div>
+    <h2 style="font-size: var(--text-xl); font-weight: 800; color: var(--primary-navy); margin-bottom: 0.5rem;">Requested Record or Resource Not Found</h2>
+    <p style="font-size: var(--text-sm); color: var(--text-secondary); line-height: 1.6; margin-bottom: 1.75rem;">
+        {{ message or "The requested patient identifier or analytical resource could not be found within the active clinical cohort." }}
+    </p>
+    <div style="display: flex; gap: 0.5rem; justify-content: center;">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-teal">
+            Return to Dashboard
+        </a>
+        <a href="{{ url_for('patients') }}" class="btn btn-secondary">
+            Browse Patients
+        </a>
+    </div>
+</div>
+{% endblock %}
