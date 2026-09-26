@@ -54,13 +54,21 @@ class DatabaseManager:
             pass
 
         if Config.IS_SERVERLESS and not Config.SQLITE_DB_PATH.exists():
-            seed_db = Config.BASE_DIR / "rare_disease.db"
-            if seed_db.exists():
-                import shutil
-                try:
-                    shutil.copy2(seed_db, Config.SQLITE_DB_PATH)
-                except Exception as e:
-                    print(f"[WARNING] Could not copy seed database: {e}")
+            candidates = [
+                Config.BASE_DIR / "rare_disease.db",
+                Path(__file__).resolve().parent.parent / "rare_disease.db",
+                Path("/var/task") / "rare_disease.db",
+                Path.cwd() / "rare_disease.db",
+            ]
+            for seed_db in candidates:
+                if seed_db.exists():
+                    import shutil
+                    try:
+                        shutil.copy2(seed_db, Config.SQLITE_DB_PATH)
+                        print(f"[SUCCESS] Copied seed database from {seed_db} to {Config.SQLITE_DB_PATH}")
+                        break
+                    except Exception as e:
+                        print(f"[WARNING] Could not copy seed database: {e}")
 
         conn = sqlite3.connect(str(Config.SQLITE_DB_PATH), timeout=30.0)
         conn.execute("PRAGMA foreign_keys = ON;")

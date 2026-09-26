@@ -51,18 +51,35 @@ def get_active_dataset(allow_fallback=True):
     all_datasets = db_manager.get_all_datasets()
     
     if not all_datasets and allow_fallback:
-        try:
-            print("[INFO] No datasets in database. Initializing default benchmark dataset...")
-            execute_full_pipeline(
-                dataset_id="ds_default",
-                dataset_name="Synthetic Rare-Disease Cohort",
-                source="Academic Benchmark",
-                description="Baseline 1,050 patient synthetic clinical dataset with 24 multi-system clinical parameters",
-                filename="patients.csv"
-            )
-            all_datasets = db_manager.get_all_datasets()
-        except Exception as e:
-            print(f"[ERROR] Default dataset initialization failed: {e}")
+        if Config.IS_SERVERLESS:
+            print("[INFO] Initializing default dataset metadata for serverless...")
+            try:
+                db_manager.save_dataset_metadata({
+                    "dataset_id": "ds_default",
+                    "dataset_name": "Synthetic Rare-Disease Cohort",
+                    "source": "Academic Benchmark",
+                    "description": "Baseline 1,050 patient synthetic clinical dataset with 24 multi-system clinical parameters",
+                    "filename": "patients.csv",
+                    "record_count": 1050,
+                    "feature_count": 24,
+                    "status": "Analyzed"
+                })
+                all_datasets = db_manager.get_all_datasets()
+            except Exception as e:
+                print(f"[WARNING] Serverless dataset seeding: {e}")
+        else:
+            try:
+                print("[INFO] No datasets in database. Initializing default benchmark dataset...")
+                execute_full_pipeline(
+                    dataset_id="ds_default",
+                    dataset_name="Synthetic Rare-Disease Cohort",
+                    source="Academic Benchmark",
+                    description="Baseline 1,050 patient synthetic clinical dataset with 24 multi-system clinical parameters",
+                    filename="patients.csv"
+                )
+                all_datasets = db_manager.get_all_datasets()
+            except Exception as e:
+                print(f"[ERROR] Default dataset initialization failed: {e}")
 
     if not all_datasets:
         g.active_dataset = None

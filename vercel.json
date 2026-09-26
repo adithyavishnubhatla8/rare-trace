@@ -1,5 +1,11 @@
 {
   "version": 2,
+  "functions": {
+    "api/**/*.py": {
+      "includeFiles": "rare_disease.db,templates/**,data/**,static/**",
+      "maxDuration": 60
+    }
+  },
   "headers": [
     {
       "source": "/static/(.*)",
