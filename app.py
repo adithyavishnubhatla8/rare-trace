@@ -99,6 +99,10 @@ def inject_dataset_context():
 # =============================================================================
 
 @app.route("/")
+@app.route("/api")
+@app.route("/api/")
+@app.route("/api/index")
+@app.route("/api/index.py")
 def index():
     """Landing Page -> Render active dataset dashboard directly without extra HTTP redirect."""
     return dashboard()
@@ -318,6 +322,9 @@ def api_upload():
 # =============================================================================
 
 @app.route("/dashboard")
+@app.route("/api/dashboard")
+@app.route("/api/index/dashboard")
+@app.route("/api/index.py/dashboard")
 def dashboard():
     """Main Analytics Dashboard strictly scoped to active dataset with sub-10ms SQL response."""
     active_ds, _ = get_active_dataset(allow_fallback=True)
@@ -1115,6 +1122,14 @@ def api_history_detail(analysis_id):
         "status": "success",
         "data": analysis
     })
+
+@app.errorhandler(404)
+def handle_404(e):
+    """Resilient fallback for Vercel serverless rewritten paths and missing routes."""
+    path = request.path.rstrip("/")
+    if path in ("", "/api", "/api/index", "/api/index.py", "/index", "/index.py"):
+        return dashboard()
+    return render_template("404.html", message="The requested URL was not found on the server."), 404
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False)
